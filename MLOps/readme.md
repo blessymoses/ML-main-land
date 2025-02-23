@@ -58,3 +58,8 @@ Status: beyond Level 0 and partially aligned with Level 1 due to containerizatio
 11. `ML Metadata and Artifact Tracking`: Manages information about artifacts generated during the ML lifecycle, enabling history management, experiment tracking, and integration with other MLOps components.
 
 https://mlops-for-all.github.io/en/docs/introduction/intro
+https://bigdatarepublic.nl/articles/the-essentials-of-an-mlops-architecture/
+https://censius.ai/blogs/key-pillars-of-mlops
+https://medium.com/@pahulhallan/building-effective-mlops-platforms-a-practical-guide-65a898dae04d
+https://www.databricks.com/resources/ebook/the-big-book-of-mlops?scid=7018Y000001Fi19QAC&utm_medium=paid+search&utm_source=google&utm_campaign=17166093989&utm_adgroup=141597893732&utm_content=ebook&utm_offer=the-big-book-of-mlops&utm_ad=678119898135&utm_term=mlops&gad_source=1&gbraid=0AAAAABYBeAhGmnmMw7GGYAyj6wNHuBpOK&gclid=Cj0KCQiAq-u9BhCjARIsANLj-s3nWIlq0YAhwHpPADoofylMlQ869iUtxaR3LQyKQN8LXAO0HpeiijoaAkuUEALw_wcB
+https://awslabs.github.io/data-on-eks/
