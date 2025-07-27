@@ -78,5 +78,57 @@ Enable GitLens for inspecting repositories directly in your IDE.
 
 ---
 
-**Author:** DevEx Team  
-**Last Updated:** July 2025
+# ✅ AWS Config File and Multiple Profiles
+
+---
+
+## 🔹 What is the AWS Config File?
+
+The **AWS config file** (`~/.aws/config`) is used by the AWS CLI and SDKs to manage and switch between **multiple sets of credentials and region settings**. It works in tandem with the **credentials file** (`~/.aws/credentials`) to help you work with different AWS accounts or roles from the same machine.
+
+---
+
+## 📁 AWS Configuration Files
+
+| File        | Path               | Purpose                                                |
+|-------------|--------------------|--------------------------------------------------------|
+| `config`    | `~/.aws/config`     | Stores profiles with region, output format, etc.       |
+| `credentials` | `~/.aws/credentials` | Stores access keys (Access Key ID and Secret Access Key) |
+
+---
+
+## 🔹 Default Profile
+
+When you run an AWS CLI command without specifying a profile, it uses the **default profile**:
+
+```ini
+[default]
+region = ap-southeast-1
+output = json
+```
+
+## 🔹 Named Profiles (Multiple Profiles)
+
+You can create additional profiles to manage access to different AWS accounts or roles.
+
+Example: ~/.aws/config
+
+```ini
+[default]
+region = ap-southeast-1
+output = json
+
+[profile dev]
+region = ap-southeast-1
+output = json
+
+[profile prod]
+region = us-west-2
+output = yaml
+```
+
+## 🔹 How to Use Profiles with AWS CLI
+  - Use the --profile flag:
+```bash
+aws s3 ls --profile dev
+```
