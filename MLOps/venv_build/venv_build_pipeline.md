@@ -189,3 +189,38 @@ WHERE EXISTS (
 - Store `pipdeptree` visualizations (e.g., SVG/DOT)
 
 ---
+
+✅ Why Use pipdeptree
+	•	Detect conflicts early
+	•	Visualize full dependency tree
+	•	Automate quality gates in Jenkins pipelines
+	•	Export structured output for auditing or alerting
+	•	Enable package-level searchability and governance
+
+---
+✅ What Is a “Pinned” Dependency?
+
+A pinned dependency uses a fixed version with ==:
+
+```txt
+✅ pandas==1.5.3
+❌ pandas
+❌ pandas>=1.2
+❌ pandas~=1.4
+```
+
+To ensure all dependencies are pinned in requirements.txt (i.e., every package has a version specified like pandas==1.5.3), you can add a validation step in your Bash script to raise an error if any unpinned packages are found.
+
+```bash
+echo "🔍 Checking if all dependencies are pinned in requirements.txt..."
+UNPINNED=$(grep -vE '^\s*#' requirements.txt | grep -vE '^\s*$' | grep -vE '==' || true)
+
+if [[ -n "$UNPINNED" ]]; then
+  echo "❌ Found unpinned dependencies in requirements.txt:"
+  echo "$UNPINNED"
+  echo "🛑 Please pin all dependencies using '==' to ensure reproducibility."
+  exit 1
+else
+  echo "✅ All dependencies are pinned."
+fi
+```
