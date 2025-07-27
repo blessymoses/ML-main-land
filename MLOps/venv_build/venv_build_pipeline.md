@@ -66,6 +66,10 @@ pip install -r requirements.txt
 ---
 
 ### 4. Archive the Virtual Environment
+Versioning Strategy
+  - Use a unique identifier for each venv build:
+	- e.g. venv_YYYYMMDD_HHMMSS
+  - Store metadata as a single venv_build_metadata.json file per version
 
 ```bash
 tar -czf venv_<version>.tar.gz venv/
@@ -135,6 +139,12 @@ TBLPROPERTIES ('classification'='json');
 ## 🔍 Discoverability with Athena
 
 ### Find all venvs with Kedro:
+
+```sql
+SELECT venv_version, created_at
+FROM venv_builds_metadata
+WHERE array_contains(installed_packages, 'kedro==0.18.14');
+```
 
 ```sql
 SELECT venv_version, created_at
