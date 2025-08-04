@@ -1,0 +1,37 @@
+%%{init: { "theme": "default", "flowchart": { "useMaxWidth": false }, "themeVariables": { "fontSize": "14px" } }}%%
+---
+title: Discoverable Virtual Environment Architecture - Jenkins + AWS (No Glue)
+---
+architecture-beta
+    section CI/CD
+      JenkinsPipeline("Jenkins Pipeline")::ci
+
+    section Compute
+      VenvBuild("Python Virtualenv Build + Validation")::compute
+
+    section Storage
+      S3Artifacts["Amazon S3 Bucket (venv-builds/<version>/)"]::storage
+
+    section Metadata
+      MetadataJson["metadata.json"]::storage
+      PipFreeze["installed_packages.json"]::storage
+      PipDeptree["pipdeptree.json"]::storage
+
+    section Query Layer
+      AthenaTable["Amazon Athena Table (venv_builds_metadata)"]::analytics
+
+    section Insights
+      QueryInterface["Athena SQL Query / Dashboard"]::users
+      PackageSearch["Search venvs by package (e.g. kedro)"]::users
+      Alerts["Optional: Alerting via SNS / Slack"]::users
+
+    JenkinsPipeline --> VenvBuild
+    VenvBuild --> S3Artifacts
+    S3Artifacts --> MetadataJson
+    S3Artifacts --> PipFreeze
+    S3Artifacts --> PipDeptree
+
+    S3Artifacts --> AthenaTable
+    AthenaTable --> QueryInterface
+    AthenaTable --> PackageSearch
+    AthenaTable --> Alerts
