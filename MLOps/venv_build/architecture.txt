@@ -1,37 +1,32 @@
-%%{init: { "theme": "default", "flowchart": { "useMaxWidth": false }, "themeVariables": { "fontSize": "14px" } }}%%
----
-title: Discoverable Virtual Environment Architecture - Jenkins + AWS (No Glue)
----
 architecture-beta
-    section CI/CD
-      JenkinsPipeline("Jenkins Pipeline")::ci
+    group cicd(logos:jenkins)[CICD Jenkins]
+    group storage(logos:aws-s3)[S3 Artifacts]
+    group query(logos:aws-quicksight)[Discoverability]
+    group consumers(cloud)[Consumers]
 
-    section Compute
-      VenvBuild("Python Virtualenv Build + Validation")::compute
+    service jenkins(logos:jenkins)[Jenkins Pipeline] in cicd
+    service venv(logos:python)[venv Build] in cicd
+    service depvalidate(logos:prettier)[Dependency Validation] in cicd
+    service archive(logos:aws-s3)[Archive to S3] in cicd
 
-    section Storage
-      S3Artifacts["Amazon S3 Bucket (venv-builds/<version>/)"]::storage
+    service venvtgz(logos:python)[venv archive] in storage
+    service meta(logos:aws-s3)[venv metadata] in storage
+    
+    service athena(logos:aws-athena)[Athena Table] in query
+    service datadog(logos:datadog)[DataDog] in query
 
-    section Metadata
-      MetadataJson["metadata.json"]::storage
-      PipFreeze["installed_packages.json"]::storage
-      PipDeptree["pipdeptree.json"]::storage
+    service search(logos:aws-athena)[Search by Package] in consumers
+    service dashboard(logos:aws-quicksight)[Dashboard Alerts] in consumers
 
-    section Query Layer
-      AthenaTable["Amazon Athena Table (venv_builds_metadata)"]::analytics
+    jenkins:B -- T:venv
+    venv:R -- L:depvalidate
+    depvalidate:T -- B:archive
 
-    section Insights
-      QueryInterface["Athena SQL Query / Dashboard"]::users
-      PackageSearch["Search venvs by package (e.g. kedro)"]::users
-      Alerts["Optional: Alerting via SNS / Slack"]::users
+    archive:R -- L:meta
+    archive:R -- L:venvtgz
 
-    JenkinsPipeline --> VenvBuild
-    VenvBuild --> S3Artifacts
-    S3Artifacts --> MetadataJson
-    S3Artifacts --> PipFreeze
-    S3Artifacts --> PipDeptree
+    meta:R -- L:athena
+    meta:R -- L:datadog
 
-    S3Artifacts --> AthenaTable
-    AthenaTable --> QueryInterface
-    AthenaTable --> PackageSearch
-    AthenaTable --> Alerts
+    athena:R -- L:search
+    datadog:R -- L:dashboard
