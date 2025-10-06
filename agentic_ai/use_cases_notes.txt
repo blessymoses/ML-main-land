@@ -1,0 +1,22 @@
+5. Credit Control Dashboard Agent
+	•	Function:
+Continuously aggregates DSO, outstanding balances, and forecast recovery timelines for management dashboards.
+	•	Agentic Behavior:
+	•	Updates visuals automatically.
+	•	Explains sudden shifts (e.g., “DSO increased 12% due to broker X delay”).
+	•	Proactively flags cashflow risks.
+	•	Tools: Redshift, Athena, AWS Service, M365 Power BI Connector, MCP Servers.
+	•	Data: AR aging, broker payments, forecast data.
+	•	Capabilities: Contextual Awareness, Autonomous Decision-Making.
+
+
+Reconciliation Agent
+	•	Function:
+Continuously matches payment transactions from bank feeds against policy/billing records and highlights exceptions.
+	•	Agentic Behavior:
+	•	Self-learns matching patterns.
+	•	Auto-initiates clarification workflows in ServiceNow or sends Teams alerts.
+	•	Proactively detects anomalies (duplicate or missing payments).
+	•	Tools: Redshift, Athena, Internal API Agent, ServiceNow, Excel Connector.
+	•	Data: Bank statements, policy billing data, ERP records.
+	•	Capabilities: Autonomous Decision-Making, Goal-Oriented Behavior.
