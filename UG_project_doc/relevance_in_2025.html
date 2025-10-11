@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>From MEAD-Based Multi-Document Summarization to Today’s Data, ML & GenAI Stack</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --ink:#0f172a;--muted:#475569;--bg:#ffffff;--card:#f8fafc;--line:#e2e8f0;--brand:#0ea5e9
+    }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
+    header{padding:48px 24px 16px;max-width:980px;margin:auto}
+    h1{font-size:clamp(28px,4vw,40px);margin:0 0 8px}
+    h2{font-size:clamp(20px,3vw,26px);margin:28px 0 8px}
+    h3{font-size:20px;margin:24px 0 6px}
+    p.lead{color:var(--muted);margin:0}
+    main{max-width:980px;margin:8px auto 64px;padding:0 24px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin:16px 0}
+    .grid{display:grid;gap:16px}
+    .grid.cols-2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+    .tag{display:inline-block;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;border-radius:999px;padding:2px 10px;font-size:12px;margin-right:6px}
+    ul{margin:10px 0 0 18px}
+    code, pre{background:#0b1220;color:#e5e7eb;border-radius:10px}
+    code{padding:2px 6px}
+    pre{padding:14px;overflow:auto}
+    .pill{font-weight:600;color:#0369a1}
+    .kpi{display:flex;flex-wrap:wrap;gap:16px}
+    .kpi .item{flex:1 1 220px;border:1px dashed var(--line);border-radius:12px;padding:12px;background:#fff}
+    footer{max-width:980px;margin:24px auto 48px;padding:0 24px;color:var(--muted);font-size:14px}
+    a{color:var(--brand);text-decoration:none}
+    .timeline{border-left:3px solid var(--line);margin-left:8px;padding-left:16px}
+    .okrs{display:grid;gap:8px}
+    .okrs .row{display:grid;grid-template-columns:160px 1fr;gap:12px}
+  </style>
+</head>
+<body>
+<header>
+  <h1>From MEAD-Style Extraction to Retrieval-Augmented, Agentic Summarization</h1>
+  <p class="lead">A 10-year journey was traced from a centroid-based, frequency-weighted, multi-document summarizer to today’s production GenAI stacks, showing how the original ideas were evolved—not discarded.</p>
+</header>
+
+<main>
+  <section class="card">
+    <h2>What was built then</h2>
+    <p>It was proposed that summaries be produced from clusters of frequently used documents. Documents were monitored for opens, visit counts were maintained, and a subset was selected. Sentences were scored using word frequency, absolute sentence position, relative paragraph position, and timestamps; the highest-scoring content was emitted under a requested compression ratio. A bottom-up implementation was followed in two modules: (1) multi-document extraction and (2) “frequently visited” multi-document extraction that filtered inputs by usage telemetry.  [oai_citation:0‡2nd rev.pptx](sediment://file_00000000cdd062308d44da2d0c488100)</p>
+    <div class="kpi">
+      <div class="item"><span class="pill">Signal design</span><br/>Centroid/term frequency + position features</div>
+      <div class="item"><span class="pill">User loop</span><br/>“Frequently visited” document selection via open-event counts</div>
+      <div class="item"><span class="pill">Output control</span><br/>Compression ratio + timestamp biasing</div>
+    </div>
+  </section>
+
+  <section class="grid cols-2">
+    <div class="card">
+      <h2>How the core ideas map to today</h2>
+      <ul>
+        <li><strong>Centroids → Vector stores:</strong> It is now typical for document clusters to be represented by embeddings and stored in ANN indexes; similarity to centroids has been replaced by k-NN over vectors.</li>
+        <li><strong>Frequency/position features → Learned rankers:</strong> The heuristic scoring was succeeded by learned retrieval/ranking models (cross-encoders, rerankers) that subsume position, salience, and novelty.</li>
+        <li><strong>Usage telemetry → Feedback loops:</strong> The “frequently visited” filter was generalized to click-through, dwell, and task-success signals used in active learning and guardrail tuning.</li>
+        <li><strong>Timestamps → Freshness policies:</strong> The recency bias was formalized as time-decay scoring and recency-aware retrieval (RAG with freshness constraints).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>A modern system that would be built</h2>
+      <ul>
+        <li>Documents would be chunked, embedded, and stored in a vector DB with metadata (source, time, access counts).</li>
+        <li>Retrieval-Augmented Generation (RAG) would be used to ground LLM summaries on retrieved passages.</li>
+        <li>Rerankers would be applied to select diverse, salient chunks before synthesis.</li>
+        <li>An agentic orchestration layer would be added for workflows (ingest → retrieve → synthesize → critique → cite).</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Reference architecture (Then → Now)</h2>
+    <div class="grid cols-2">
+      <div>
+        <h3>Original flow</h3>
+        <div class="timeline">
+          <p><strong>Collect</strong> → folder scan &amp; open-event monitor</p>
+          <p><strong>Select</strong> → frequently visited subset</p>
+          <p><strong>Score</strong> → frequency + position + timestamp</p>
+          <p><strong>Compress</strong> → fixed ratio summary</p>
+        </div>
+      </div>
+      <div>
+        <h3>Modernized flow</h3>
+        <div class="timeline">
+          <p><strong>Ingest</strong> → streaming connectors, OCR, PII scrubbing</p>
+          <p><strong>Index</strong> → embeddings, BM25, hybrid search, metadata</p>
+          <p><strong>Retrieve</strong> → recency-aware k-NN + learned reranker</p>
+          <p><strong>Synthesize</strong> → LLM with RAG + citation enforcement</p>
+          <p><strong>Assess</strong> → factuality checks (NLI), toxicity filters</p>
+          <p><strong>Learn</strong> → feedback reinforcement (RLHF/DPO), telemetry loops</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Data &amp; MLOps scaffolding that would be adopted</h2>
+    <ul>
+      <li><strong>Data plane:</strong> Versioned raw &amp; curated zones; lineage tracked so summaries can be reproduced.</li>
+      <li><strong>Feature &amp; index plane:</strong> Embedding jobs scheduled; index snapshots versioned; drift monitors run.</li>
+      <li><strong>Model plane:</strong> Base LLMs pinned; guard models (Pii/PHI, safety) registered; canary deployments are used.</li>
+      <li><strong>Observability:</strong> Retrieval hit-rate, answer support coverage, groundedness/factuality scores, latency budgets.</li>
+      <li><strong>Governance:</strong> Access controls inherit from the source; citations are enforced; retention and deletion policies are respected.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Algorithmic evolution</h2>
+    <div class="grid cols-2">
+      <div>
+        <h3>Extraction lineage</h3>
+        <ul>
+          <li>Heuristic extractive scoring → learning-to-rank → cross-encoder reranking.</li>
+          <li>Redundancy control (MMR) is applied to encourage coverage diversity.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Abstractive synthesis</h3>
+        <ul>
+          <li>LLMs are conditioned on top-k passages with structure-aware prompts (headings, bullets, tables).</li>
+          <li>Faithfulness is increased through constrained decoding or answer-supported generation with inline citations.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>What “frequently visited” becomes today</h2>
+    <ul>
+      <li><strong>Signals:</strong> Opens, reads, edits, queries, downstream usage in reports and tickets are captured.</li>
+      <li><strong>Policies:</strong> Retrieval is biased by organization-wide demand while respecting per-user permissions.</li>
+      <li><strong>Learning:</strong> Human accept/reject of summary bullets is logged; retrievers and prompts are auto-tuned.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Quality, safety &amp; evaluation</h2>
+    <ul>
+      <li><strong>Groundedness:</strong> Each bullet is supported by source spans; unsupported text is flagged.</li>
+      <li><strong>Coverage:</strong> Topic-coverage metrics (recall@k over human keypoints) are reported.</li>
+      <li><strong>Factuality:</strong> Natural-language inference checks are run between claim and evidence.</li>
+      <li><strong>Readability:</strong> Length, structure, and role-appropriate tone are validated automatically.</li>
+      <li><strong>Privacy:</strong> Sensitive entities are masked or omitted according to data classification.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Agentic extension (when tasks are multi-step)</h2>
+    <ul>
+      <li><strong>Planner agent:</strong> It is tasked to decompose “summarize corpus X for stakeholder Y” into retrieval, synthesis, and critique steps.</li>
+      <li><strong>Retriever agent:</strong> It is instructed to negotiate between recency and authority using hybrid search and reranking.</li>
+      <li><strong>Synthesizer agent:</strong> It is constrained to cite and to preserve domain terminology.</li>
+      <li><strong>Critic/verifier agent:</strong> It is asked to challenge claims against evidence and to reduce hallucination risk.</li>
+      <li><strong>Feedback agent:</strong> It is used to digest user edits and to update prompts and retrieval weights.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Suggested modernization roadmap</h2>
+    <div class="okrs">
+      <div class="row"><div><strong>P0</strong></div><div>It is proposed that the corpus be ingested to a vector store; a baseline RAG summary be shipped with citations; basic usage telemetry be captured.</div></div>
+      <div class="row"><div><strong>P1</strong></div><div>Hybrid retrieval and learned reranking be introduced; evaluation harness (groundedness, coverage) be automated.</div></div>
+      <div class="row"><div><strong>P2</strong></div><div>Agentic orchestration be adopted for multi-section reports; safety and red-team tests be embedded in CI.</div></div>
+      <div class="row"><div><strong>P3</strong></div><div>Feedback-driven optimization (prompt, retriever, routing) be enabled; domain-specific style guides be enforced.</div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Why the original work still matters</h2>
+    <ul>
+      <li>The emphasis on <em>salience</em>, <em>recency</em>, and <em>usage-aware selection</em> anticipated modern retrieval policies.</li>
+      <li>The separation of <em>selection</em> and <em>compression</em> prefigured the retrieval-then-generate paradigm.</li>
+      <li>The preference for deterministic extraction established an audit trail that is still required by governance teams.</li>
+    </ul>
+  </section>
+</main>
+
+<footer>
+  <p><strong>Provenance:</strong> This narrative was synthesized from the original project slides describing a MEAD-style, multi-document extraction system that selected frequently visited documents, scored sentences by frequency and position, biased by timestamps, and generated summaries under a target compression ratio.  [oai_citation:1‡2nd rev.pptx](sediment://file_00000000cdd062308d44da2d0c488100)</p>
+</footer>
+</body>
+</html>
