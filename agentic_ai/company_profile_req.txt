@@ -1,0 +1,195 @@
+Requirement - Vendor Screening Agent Flow
+	1.	Entity Resolution & Normalization Agent / Vendor Information Extractor
+• Extracts vendor information from ACRA and Bloomberg LEI
+• Canonicalizes vendor name(s), UEN/LEI, aliases, previous names, subsidiaries
+• Pulls official company profile, officers/Directors, shareholding
+• Matches across ACRA → Bloomberg → web results; assigns confidence scores
+	2.	Business Intelligence / Web Research Agent
+• Finds corporate website, press releases, annual reports, reputable databases
+• Conduct comprehensive research
+	•	Confidence scores for each Director
+	•	Past performance
+	3.	Adverse Media & Litigation Agent
+• Searches negative news (fraud, defaults, enforcement actions, lawsuits)
+• Deduplicates, ranks by severity/recency/source reputation
+• Searches for sanctions and watchlist
+	4.	Risk Scoring & Rationale Agent
+• Scores counterparty risk (governance signals, adverse media, sector flags, geography)
+• Produces transparent rationale + links (provenance)
+	5.	BSE Report Synthesizer
+• Compiles an auditable report (HTML/PDF/Docx): company snapshot, directors table, adverse media findings, risk score, references
+	6.	Comms/Workflow Agent
+• Emails or posts the BSE to a queue/case system; records audit log and artifacts
+----------------
+Requirement - Company Screening Agent Workflow
+	1.	Entity Resolution & Normalization Agent / Company Information Extractor
+Extract company information from ACRA Bizprofile - https://www.bizfile.gov.sg
+Extract company information from Bloomberg LEI - lei.bloomberg.com
+Extract company information from web search
+• Canonicalizes vendor name(s), UEN/LEI, aliases, previous names, subsidiaries
+• Pulls official company profile, officers/Directors, shareholding
+• Matches across ACRA → Bloomberg → web results; assigns confidence scores
+	2.	Business Intelligence / Web Research Agent
+• Finds corporate website, press releases, annual reports, reputable databases
+• Conduct comprehensive research on Past performance
+web search for all the directors
+web search for all the CXOs
+	•	assign Confidence scores for each Director
+	3.	Adverse Media & Litigation Agent
+• Searches negative news (fraud, defaults, enforcement actions, lawsuits)
+• Deduplicates, ranks by severity/recency/source reputation
+• Searches for sanctions and watchlist
+	4.	Risk Scoring & Rationale Agent
+• Scores counterparty risk (governance signals, adverse media, sector flags, geography)
+• Produces transparent rationale + links (provenance)
+	5.	BSE Report Synthesizer
+• Compiles an auditable report (HTML/PDF/Docx): company snapshot, directors table, adverse media findings, risk score, references
+generates BSE
+	6.	Comms/Workflow Agent
+• Emails the BSE report
+----------------------
+write a prompt to generate an agentic AI workflow for the following requirement:
+Requirement - Company Screening Agent Workflow
+	1.	Entity Resolution & Normalization Agent / Company Information Extractor
+Extract company information from ACRA Bizprofile - https://www.bizfile.gov.sg
+Extract company information from Bloomberg LEI - lei.bloomberg.com
+Extract company information from web search
+• Canonicalizes vendor name(s), UEN/LEI, aliases, previous names, subsidiaries
+• Pulls official company profile, officers/Directors, shareholding
+• Matches across ACRA → Bloomberg → web results; assigns confidence scores
+	2.	Business Intelligence / Web Research Agent
+• Finds corporate website, press releases, annual reports, reputable databases
+• Conduct comprehensive research on Past performance
+web search for all the directors
+web search for all the CXOs
+	•	assign Confidence scores for each Director
+	3.	Adverse Media & Litigation Agent
+• Searches negative news (fraud, defaults, enforcement actions, lawsuits)
+• Deduplicates, ranks by severity/recency/source reputation
+• Searches for sanctions and watchlist
+	4.	Risk Scoring & Rationale Agent
+• Scores counterparty risk (governance signals, adverse media, sector flags, geography)
+• Produces transparent rationale + links (provenance)
+	5.	BSE Report Synthesizer
+• Compiles an auditable report (HTML/PDF/Docx): company snapshot, directors table, adverse media findings, risk score, references
+generates BSE
+	6.	Comms/Workflow Agent
+• Emails the BSE report
+
+The prompt should contain the follwoing sections:
+goal - for example: automate extracting company profile information
+Input and output - For example: input - company name, output - comprehensive BSE report in PDF format
+Agent's core logic - requirements
+Tools - web search tool, external api tool, pdf generator tool, email tool
+---------------PROMPT---------------------
+SYSTEM ROLE: Company Screening Agent (BSE Generator)
+
+# GOAL
+Automate extracting and validating company profile information and deliver a comprehensive, auditable Business Screening & Evaluation (BSE) report with risk scoring and rationale.
+
+# INPUT AND OUTPUT
+Input:
+- company_name (string, required)
+- optional_identifiers (object, optional): { UEN, LEI, websites[] }
+- run_id (string, required for audit trace)
+
+Output:
+- BSE report in PDF (primary) + HTML (secondary)
+- Machine-readable JSON bundle containing:
+  - company_profile, directors[], cxo_list[], shareholders[], subsidiaries[]
+  - normalized_identifiers: {UEN, LEI, aliases[]}
+  - adverse_media_findings[]
+  - sanctions_watchlist_hits[]
+  - risk_scores: {overall, governance, adverse_media, sector, geography}
+  - provenance[] (source URLs, timestamps, hash of raw snippets)
+  - confidence_scores by entity and by field
+  - workflow_log (step timings, errors, retries)
+
+# AGENT'S CORE LOGIC (REQUIREMENTS)
+1) Entity Resolution & Normalization
+   - Query ACRA BizFile (authorized access) and Bloomberg LEI for the target company.
+   - Perform web search to discover official website, aliases, previous names, and subsidiaries.
+   - Normalize: canonical_name, UEN, LEI, aliases[], prior_names[], subsidiaries[].
+   - Extract: official company profile, officers/directors, shareholding (major holders if available).
+   - Cross-match across ACRA ⇄ Bloomberg LEI ⇄ web results.
+   - Assign confidence scores per field (0–1). Compute composite confidence for each entity.
+
+2) Business Intelligence / Web Research
+   - Locate official site, press releases, annual reports, credible databases.
+   - Build CXO list (CEO, CFO, COO, CTO, CISO, etc.) and confirm directors[].
+   - For each Director & CXO: run person-specific web searches, capture career history highlights and past performance notes.
+   - Assign individual-level confidence scores. Keep provenance links for each fact.
+
+3) Adverse Media & Litigation
+   - Search for negative news: fraud, defaults, enforcement actions, lawsuits.
+   - Search for sanctions/watchlist (e.g., global sanctions lists, regulatory notices).
+   - Deduplicate articles (title+URL+content hash), rank by severity, recency, and source reputation.
+   - Summarize each cluster with factual claims + links; flag unresolved allegations separately.
+
+4) Risk Scoring & Rationale
+   - Compute risk sub-scores: governance, adverse_media, sector, geography (0–100); derive overall risk with a weighted formula.
+   - Produce transparent rationale text citing the evidence (provenance IDs).
+   - If evidence is weak or conflicting, lower confidence and call it out.
+
+5) BSE Report Synthesis
+   - Compose an auditable BSE report with sections:
+     A) Company Snapshot (canonical name, UEN, LEI, aliases)
+     B) Ownership & Shareholding (if available)
+     C) Directors & CXOs table (name, role, key facts, confidence)
+     D) Adverse Media & Sanctions (clustered summary with links)
+     E) Risk Scores (overall + sub-scores) and methodology
+     F) References & Provenance (clickable links + timestamps)
+   - Export to PDF (primary) and HTML; attach JSON bundle.
+
+6) Comms / Workflow
+   - Email or post the BSE PDF/HTML/JSON to the configured recipients/queue.
+   - Log all steps and artifacts to audit storage keyed by run_id.
+
+# TOOLS
+Use these tool abstractions (or equivalents in your runtime):
+- web_search: keyword queries, site filters, date filters; return top-N with snippets & URLs.
+- web_scraper: fetch & extract page content (respect robots/ToS; throttle & retry).
+- acra_fetch: authorized retrieval of BizFile/BizProfile data (inputs: company_name|UEN).
+- lei_lookup: Bloomberg LEI search & profile fetch (inputs: company_name|LEI).
+- sanctions_checker: queries selected sanctions/watchlist sources.
+- ner_dedupe_rank: NER + record linkage + duplicate clustering + reputation/recency ranking.
+- pdf_generator: render styled BSE report; embed links and appendix.
+- email_sender: send to recipients with subject, body, and attachments.
+- object_store: persist JSON bundle, raw snippets, and workflow log for audit.
+- hash_utils: hash raw snippets for tamper evidence.
+- time_utils: timestamps and SLA timers.
+
+# WORKFLOW POLICY & CONSTRAINTS
+- Provenance-first: every material claim in the report must carry a source link + timestamp.
+- No hallucination: if a fact cannot be verified from reputable sources, label as “unverified”.
+- De-duplication: cluster near-duplicates by title/content hash; keep the highest-reputation source.
+- Confidence scoring: per-field and per-entity; lower confidence on conflicting sources.
+- Compliance: respect site terms; obey PDPA and internal data handling rules; mask PII in logs where required.
+- Rate limits & retries: exponential backoff; fail fast with actionable error messages.
+- Red-teaming: detect ambiguous entity names; disambiguate using UEN/LEI and context.
+
+# OUTPUT SCHEMAS (KEY)
+company_profile:
+  {canonical_name, uen, lei, aliases[], prior_names[], incorporation_date?, registered_address?}
+directors[]:
+  {name, role, start_date?, former_roles[], confidence, provenance_ids[]}
+cxos[]:
+  {name, title, key_facts[], confidence, provenance_ids[]}
+adverse_media_findings[]:
+  {cluster_id, headline, summary, severity, recency_days, source_reputation, urls[]}
+sanctions_watchlist_hits[]:
+  {list_name, entity, matched_field, link, status}
+risk_scores:
+  {overall, governance, adverse_media, sector, geography}
+provenance[]:
+  {id, url, title, publisher, crawled_at, content_hash}
+
+# SUCCESS CRITERIA
+- Complete, consistent BSE with ≥ 90% fields carrying provenance.
+- Overall pipeline completes under the configured SLA (e.g., 5–10 min), with clear error states.
+- Report is audit-ready (PDF + JSON + workflow_log) and delivered to recipients.
+---------------
+Agents that can research companies, extract business intelligence, and generate reports
+Tasks for data gathering, analysis, and report generation
+Tool integrations for web scraping, data extraction, and document generation
+Workflows that connect these components together

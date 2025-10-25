@@ -1,0 +1,389 @@
+{
+  "name": "Company Screening Agent (Bedrock)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "company-screening",
+        "options": {
+          "response": {
+            "response": "json",
+            "responseCode": 200
+          }
+        }
+      },
+      "id": "Webhook_In",
+      "name": "Webhook (Start)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 200],
+      "webhookId": "company-screening"
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            { "name": "company", "value": "={{$json.body.company || ''}}" },
+            { "name": "uen", "value": "={{$json.body.uen || ''}}" },
+            { "name": "lei", "value": "={{$json.body.lei || ''}}" },
+            { "name": "requester_email", "value": "={{$json.body.email || ''}}" }
+          ]
+        }
+      },
+      "id": "Set_Input",
+      "name": "Set Inputs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [430, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://api.duckduckgo.com",
+        "responseFormat": "json",
+        "options": {
+          "queryParametersUi": {
+            "parameter": [
+              { "name": "q", "value": "={{$json.company + ' company site press release annual report directors shareholders'}}" },
+              { "name": "format", "value": "json" },
+              { "name": "no_redirect", "value": "1" },
+              { "name": "no_html", "value": "1" }
+            ]
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "WebSearch_Company",
+      "name": "Web Search (Company, DDG)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [660, 320]
+    },
+    {
+      "parameters": {
+        "region": "ap-southeast-1",
+        "modelId": "anthropic.claude-3-sonnet-20240229-v1:0",
+        "systemInstruction": "You are the Entity Resolution & Normalization Agent.\nTask: From web search JSON results only (no ACRA or LEI), build a canonical company profile.\nReturn strict JSON with these keys: {\n  canonicalName, aliases[], identifiers: {UEN, LEI}, subsidiaries[], officers:[{name, role}], directors:[{name, role}], shareholders:[{name, pct}], confidence:{company:0-1, identifiers:0-1, officers:0-1, directors:0-1}, matched:{acra:{...}, lei:{...}, web:{...}}\n}.\nResolve conflicts, dedupe, and add confidence scores for each section.",
+        "input": "={{ { web: $json } }}"
+      },
+      "id": "Bedrock_Normalize",
+      "name": "Bedrock - Normalize/Match",
+      "type": "n8n-nodes-base.awsBedrockChatModel",
+      "typeVersion": 1,
+      "position": [1140, 200],
+      "credentials": {
+        "aws": {
+          "id": "AWS_CREDENTIAL_ID",
+          "name": "AWS (Bedrock)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const out = [];\nconst company = $item(0).$json.company || $json.company;\nconst normalized = $json.data || $json;\nconst directors = (normalized.directors || []).map(d => d.name).filter(Boolean);\n// Build search queries per director and CXO list\nconst queries = new Set();\nif (directors.length) {\n  directors.forEach(d => queries.add(`${company} ${d} director profile`));\n}\n[\"CEO\",\"CFO\",\"COO\",\"CTO\",\"CIO\",\"Chairman\"].forEach(role => queries.add(`${company} ${role} profile`));\nreturn Array.from(queries).map(q => ({ query:q, company, normalized }));"
+      },
+      "id": "Build_Director_Queries",
+      "name": "Build Director/CXO Queries",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [1140, 340]
+    },
+    {
+      "parameters": {
+        "batchSize": 5,
+        "options": {}
+      },
+      "id": "Split_Batches",
+      "name": "Split in Batches (5)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [1340, 340]
+    },
+    {
+      "parameters": {
+        "url": "https://api.duckduckgo.com",
+        "responseFormat": "json",
+        "options": {
+          "queryParametersUi": {
+            "parameter": [
+              { "name": "q", "value": "={{$json.query}}" },
+              { "name": "format", "value": "json" },
+              { "name": "no_redirect", "value": "1" },
+              { "name": "no_html", "value": "1" }
+            ]
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "WebSearch_People",
+      "name": "Web Search (People, DDG)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1540, 340]
+    },
+    {
+      "parameters": {
+        "region": "ap-southeast-1",
+        "modelId": "anthropic.claude-3-sonnet-20240229-v1:0",
+        "systemInstruction": "You are the Business Intelligence / Web Research Agent.\\nTask: Given normalized company JSON and a bundle of web results for directors/CXOs, summarize findings on corporate website, press releases, annual reports, and produce a per-person confidence score in [0,1].\\nReturn JSON: { website, pressReleases:[{title,url,date}], annualReports:[{title,url,date}], people:[{name, role, confidence, keyFindings, sources:[{title,url}]}] }",
+        "input": "={{ { normalized: $items(0).json, peopleSearch: $json } }}"
+      },
+      "id": "Bedrock_BI",
+      "name": "Bedrock - Business Intel",
+      "type": "n8n-nodes-base.awsBedrockChatModel",
+      "typeVersion": 1,
+      "position": [1740, 340],
+      "credentials": {
+        "aws": {
+          "id": "AWS_CREDENTIAL_ID",
+          "name": "AWS (Bedrock)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "passThrough"
+      },
+      "id": "Merge_BI",
+      "name": "Merge BI (accumulate)",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [1940, 340]
+    },
+    {
+      "parameters": {},
+      "id": "NoMoreBatches",
+      "name": "No More Batches?",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1340, 470]
+    },
+    {
+      "parameters": {
+        "region": "ap-southeast-1",
+        "modelId": "anthropic.claude-3-sonnet-20240229-v1:0",
+        "systemInstruction": "You are the Adverse Media & Litigation Agent.\\nTask: Using company name and any identifiers, search result bundles (if provided), detect negative news, fraud, defaults, enforcement actions, and lawsuits. Deduplicate, and rank by severity & recency. Also scan for sanctions/watchlists.\\nReturn JSON: { adverseMedia:[{title,url,date,summary,severity:1-5,sourceReputation:1-5}], sanctions:[{list, entity, confidence}], methodology: string }",
+        "input": "={{ { company: $json.normalized?.canonicalName || $json.company, identifiers: $json.normalized?.identifiers || {}, web: $json } }}"
+      },
+      "id": "Bedrock_Adverse",
+      "name": "Bedrock - Adverse Media",
+      "type": "n8n-nodes-base.awsBedrockChatModel",
+      "typeVersion": 1,
+      "position": [1140, 540],
+      "credentials": {
+        "aws": {
+          "id": "AWS_CREDENTIAL_ID",
+          "name": "AWS (Bedrock)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "region": "ap-southeast-1",
+        "modelId": "anthropic.claude-3-sonnet-20240229-v1:0",
+        "systemInstruction": "You are the Risk Scoring & Rationale Agent.\\nInput: normalized company profile, BI output, adverse media.\\nOutput: { riskScore:0-100, grade:'Low|Moderate|High|Critical', rationale: string, keySignals:[{signal, weight, value}], provenance:[{label,url}] }\\nUse governance, sector, geography, adverse media severity and director confidence.",
+        "input": "={{ { normalized: $json.normalized || $json.data || {}, bi: $json.bi || {}, adverse: $json.adverse || {} } }}"
+      },
+      "id": "Bedrock_Risk",
+      "name": "Bedrock - Risk Score",
+      "type": "n8n-nodes-base.awsBedrockChatModel",
+      "typeVersion": 1,
+      "position": [1380, 540],
+      "credentials": {
+        "aws": {
+          "id": "AWS_CREDENTIAL_ID",
+          "name": "AWS (Bedrock)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{ json: { normalized: $items('Bedrock - Normalize/Match')[0].json || {}, bi: $items('Merge BI (accumulate)')[0].json || {}, adverse: $items('Bedrock - Adverse Media')[0].json || {}, risk: $items('Bedrock - Risk Score')[0].json || {}, requester_email: $items('Set Inputs')[0].json.requester_email || '' } }];"
+      },
+      "id": "Assemble_For_Report",
+      "name": "Assemble For Report",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [1600, 540]
+    },
+    {
+      "parameters": {
+        "region": "ap-southeast-1",
+        "modelId": "anthropic.claude-3-sonnet-20240229-v1:0",
+        "systemInstruction": "You are the BSE Report Synthesizer. Produce an **auditable HTML report** with sections: Company snapshot, directors table (with confidence), officers/shareholders, adverse media (ranked), risk scoring (score+grade+rationale), provenance links. Keep CSS inline and simple. Title the doc 'BSE – Company Screening'.",
+        "input": "={{ { normalized: $json.normalized, bi: $json.bi, adverse: $json.adverse, risk: $json.risk } }}"
+      },
+      "id": "Bedrock_Report_HTML",
+      "name": "Bedrock - Report (HTML)",
+      "type": "n8n-nodes-base.awsBedrockChatModel",
+      "typeVersion": 1,
+      "position": [1820, 540],
+      "credentials": {
+        "aws": {
+          "id": "AWS_CREDENTIAL_ID",
+          "name": "AWS (Bedrock)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "html": "={{$json.text || $json.output || $json}}",
+        "options": {
+          "format": "A4"
+        }
+      },
+      "id": "HTML_to_PDF",
+      "name": "HTML → PDF",
+      "type": "n8n-nodes-base.htmlToPdf",
+      "typeVersion": 1,
+      "position": [2040, 540]
+    },
+    {
+      "parameters": {
+        "binaryPropertyName": "data",
+        "fileName": "BSE-Report.pdf",
+        "options": {}
+      },
+      "id": "Binary_Attach",
+      "name": "Attach PDF",
+      "type": "n8n-nodes-base.moveBinaryData",
+      "typeVersion": 1,
+      "position": [2240, 540]
+    },
+    {
+      "parameters": {
+        "fromEmail": "bse-bot@yourcompany.com",
+        "toEmail": "={{$items('Set Inputs')[0].json.requester_email || 'compliance@yourcompany.com'}}",
+        "subject": "BSE – Company Screening Report",
+        "text": "Please find attached the BSE company screening report.",
+        "attachmentsUi": {
+          "attachments": [
+            { "binaryPropertyName": "data" }
+          ]
+        }
+      },
+      "id": "Email_Send",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [2440, 540],
+      "credentials": {
+        "smtp": {
+          "id": "SMTP_CREDENTIAL_ID",
+          "name": "SMTP (BSE Bot)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "responseBody": "={{ { status:'ok', message:'BSE report generated and emailed', email: $items('Set Inputs')[0].json.requester_email } }}"
+      },
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2660, 540]
+    }
+  ],
+  "connections": {
+    "Webhook (Start)": {
+      "main": [
+        [{ "node": "Set Inputs", "type": "main", "index": 0 }]
+      ]
+    },
+    "Set Inputs": {
+      "main": [
+        [
+          { "node": "Web Search (Company, DDG)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Web Search (Company, DDG)": {
+      "main": [
+        [{ "node": "Bedrock - Normalize/Match", "type": "main", "index": 0 }]
+      ]
+    },
+    "Bedrock - Normalize/Match": {
+      "main": [
+        [
+          { "node": "Bedrock - Adverse Media", "type": "main", "index": 0 },
+          { "node": "Build Director/CXO Queries", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Director/CXO Queries": {
+      "main": [
+        [{ "node": "Split in Batches (5)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Split in Batches (5)": {
+      "main": [
+        [
+          { "node": "Web Search (People, DDG)", "type": "main", "index": 0 }
+        ]
+      ],
+      "next": [
+        [
+          { "node": "No More Batches?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Web Search (People, DDG)": {
+      "main": [
+        [{ "node": "Bedrock - Business Intel", "type": "main", "index": 0 }]
+      ]
+    },
+    "Bedrock - Business Intel": {
+      "main": [
+        [{ "node": "Merge BI (accumulate)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Merge BI (accumulate)": {
+      "main": [
+        [{ "node": "Bedrock - Adverse Media", "type": "main", "index": 0 }]
+      ]
+    },
+    "Bedrock - Adverse Media": {
+      "main": [
+        [{ "node": "Bedrock - Risk Score", "type": "main", "index": 0 }]
+      ]
+    },
+    "Bedrock - Risk Score": {
+      "main": [
+        [{ "node": "Assemble For Report", "type": "main", "index": 0 }]
+      ]
+    },
+    "Assemble For Report": {
+      "main": [
+        [{ "node": "Bedrock - Report (HTML)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Bedrock - Report (HTML)": {
+      "main": [
+        [{ "node": "HTML → PDF", "type": "main", "index": 0 }]
+      ]
+    },
+    "HTML → PDF": {
+      "main": [
+        [{ "node": "Attach PDF", "type": "main", "index": 0 }]
+      ]
+    },
+    "Attach PDF": {
+      "main": [
+        [{ "node": "Send Email", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [{ "node": "Respond", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "company-screening-bedrock"
+  },
+  "settings": {
+    "saveExecutionProgress": true,
+    "executionOrder": "v1"
+  }
+}
