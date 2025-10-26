@@ -4,13 +4,37 @@
   "nodes": [
     {
       "parameters": {},
+      "id": "c8c2f234-1c7f-4b8e-ba30-1be9af70906e",
+      "name": "Chat Trigger",
+      "type": "n8n-nodes-base.chatTrigger",
+      "typeVersion": 1,
+      "position": [
+        -620,
+        -220
+      ]
+    },
+    {
+      "parameters": {},
       "id": "ddc81a5f-f13b-4a6a-9a68-f165a48f4b8f",
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        -380,
+        -620,
         0
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const rawText = ($json.text || $json.message || $json.prompt || '').trim();\nconst lines = rawText.split(/\n|,/).map((segment) => segment.trim()).filter(Boolean);\nconst pairs = new Map();\nfor (const line of lines) {\n  const match = line.match(/^(company|name|uen|lei)\\s*[:=-]\\s*(.+)$/i);\n  if (match) {\n    pairs.set(match[1].toLowerCase(), match[2].trim());\n  }\n}\nconst firstNonEmpty = lines[0] || '';\nconst normalizedName = pairs.get('company') || pairs.get('name') || (firstNonEmpty && firstNonEmpty.length > 2 ? firstNonEmpty : '');\nreturn [\n  {\n    companyName: normalizedName,\n    uen: pairs.get('uen') || '',\n    lei: pairs.get('lei') || '',\n    chatContext: {\n      chatId: $json.chatId || $json.chat_id || null,\n      messageId: $json.messageId || $json.id || null,\n      rawText\n    }\n  }\n];"
+      },
+      "id": "4f3d13d0-1d7d-4fd4-bd36-989d2b6b6ccc",
+      "name": "Parse Chat Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        -220
       ]
     },
     {
@@ -38,21 +62,21 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3,
       "position": [
-        -180,
+        -380,
         0
       ]
     },
     {
       "parameters": {
-        "functionCode": "const companyName = ($json.companyName || '').trim();\nif (!companyName) {\n  throw new Error('Set `companyName` in the Set Company Input node before executing the workflow.');\n}\nconst encode = (input) => encodeURIComponent(input);\nconst normalized = companyName.replace(/\\s+/g, ' ').trim();\nconst queries = {\n  acraSearch: `https://duckduckgo.com/html/?q=${encode(normalized + ' site:bizfile.gov.sg')}`,\n  bloombergSearch: `https://duckduckgo.com/html/?q=${encode(normalized + ' LEI site:bloomberg.com')}`,\n  profileSearch: `https://duckduckgo.com/html/?q=${encode(normalized + ' official website company profile')}`,\n  directorSearch: `https://duckduckgo.com/html/?q=${encode(normalized + ' board of directors')}`,\n  cxoSearch: `https://duckduckgo.com/html/?q=${encode(normalized + ' CEO CFO COO CTO leadership team')}`,\n  adverseSearch: `https://duckduckgo.com/html/?q=${encode(normalized + ' fraud OR lawsuit OR enforcement action OR default')}`,\n  sanctionsSearch: `https://duckduckgo.com/html/?q=${encode(normalized + ' sanction OR watchlist OR blacklist')}`\n};\nreturn [\n  {\n    companyName: normalized,\n    uen: ($json.uen || '').trim(),\n    lei: ($json.lei || '').trim(),\n    queries,\n    sources: {\n      acra: [],\n      bloomberg: [],\n      webProfiles: [],\n      directors: [],\n      cxo: [],\n      adverseMedia: [],\n      sanctions: []\n    }\n  }\n];"
+        "functionCode": "const companyName = ($json.companyName || '').trim();\nif (!companyName) {\n  throw new Error('Company name is required. Provide it via Chat Trigger or update the Set Company Input node.');\n}\nconst encode = (input) => encodeURIComponent(input);\nconst normalized = companyName.replace(/\\s+/g, ' ').trim();\nconst queries = {\n  acraSearch: `https://duckduckgo.com/html/?q=${encode(normalized + ' site:bizfile.gov.sg')}`,\n  bloombergSearch: `https://duckduckgo.com/html/?q=${encode(normalized + ' LEI site:bloomberg.com')}`,\n  profileSearch: `https://duckduckgo.com/html/?q=${encode(normalized + ' official website company profile')}`,\n  directorSearch: `https://duckduckgo.com/html/?q=${encode(normalized + ' board of directors')}`,\n  cxoSearch: `https://duckduckgo.com/html/?q=${encode(normalized + ' CEO CFO COO CTO leadership team')}`,\n  adverseSearch: `https://duckduckgo.com/html/?q=${encode(normalized + ' fraud OR lawsuit OR enforcement action OR default')}`,\n  sanctionsSearch: `https://duckduckgo.com/html/?q=${encode(normalized + ' sanction OR watchlist OR blacklist')}`\n};\nreturn [\n  {\n    companyName: normalized,\n    uen: ($json.uen || '').trim(),\n    lei: ($json.lei || '').trim(),\n    chatContext: $json.chatContext || null,\n    queries,\n    sources: {\n      acra: $json.sources?.acra || [],\n      bloomberg: $json.sources?.bloomberg || [],\n      webProfiles: $json.sources?.webProfiles || [],\n      directors: $json.sources?.directors || [],\n      cxo: $json.sources?.cxo || [],\n      adverseMedia: $json.sources?.adverseMedia || [],\n      sanctions: $json.sources?.sanctions || []\n    }\n  }\n];"
       },
       "id": "6c8b1cf4-1f6f-4f71-b8a3-dcf287f092d1",
       "name": "Prepare Search Targets",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        20,
-        0
+        -120,
+        -100
       ]
     },
     {
@@ -76,8 +100,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        240,
-        0
+        120,
+        -100
       ]
     },
     {
@@ -89,8 +113,8 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        500,
-        0
+        360,
+        -100
       ]
     },
     {
@@ -114,8 +138,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        740,
-        0
+        600,
+        -100
       ]
     },
     {
@@ -127,8 +151,8 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        980,
-        0
+        840,
+        -100
       ]
     },
     {
@@ -152,8 +176,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1220,
-        0
+        1080,
+        -100
       ]
     },
     {
@@ -165,8 +189,8 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        1460,
-        0
+        1320,
+        -100
       ]
     },
     {
@@ -190,8 +214,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1700,
-        0
+        1560,
+        -100
       ]
     },
     {
@@ -203,8 +227,8 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        1940,
-        0
+        1800,
+        -100
       ]
     },
     {
@@ -228,8 +252,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        2180,
-        0
+        2040,
+        -100
       ]
     },
     {
@@ -241,8 +265,8 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        2420,
-        0
+        2280,
+        -100
       ]
     },
     {
@@ -266,8 +290,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        2660,
-        0
+        2520,
+        -100
       ]
     },
     {
@@ -279,8 +303,8 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        2900,
-        0
+        2760,
+        -100
       ]
     },
     {
@@ -304,8 +328,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        3140,
-        0
+        3000,
+        -100
       ]
     },
     {
@@ -317,8 +341,8 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        3380,
-        0
+        3240,
+        -100
       ]
     },
     {
@@ -330,8 +354,8 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        3620,
-        0
+        3480,
+        -100
       ]
     },
     {
@@ -343,8 +367,8 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        3860,
-        0
+        3720,
+        -100
       ]
     },
     {
@@ -356,43 +380,126 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        4100,
-        0
+        3960,
+        -100
       ]
     },
     {
       "parameters": {
-        "functionCode": "const adverseInsights = $json.adverseInsights || { findings: [] };\nconst businessIntel = $json.businessIntel || { directors: [], executives: [] };\nconst entity = $json.entity || { matchConfidence: 0 };\nconst findings = Array.isArray(adverseInsights.findings) ? adverseInsights.findings : [];\nconst directors = Array.isArray(businessIntel.directors) ? businessIntel.directors : [];\nconst executives = Array.isArray(businessIntel.executives) ? businessIntel.executives : [];\nconst entityConfidence = typeof entity.matchConfidence === 'number' ? entity.matchConfidence : 0.4;\nconst directorConfidenceAvg = directors.length ? directors.reduce((sum, item) => sum + (item.confidence || 0), 0) / directors.length : 0;\nconst executiveConfidenceAvg = executives.length ? executives.reduce((sum, item) => sum + (item.confidence || 0), 0) / executives.length : 0;\nconst highSeverityCount = findings.filter((item) => item.severity === 'high').length;\nconst mediumSeverityCount = findings.filter((item) => item.severity === 'medium').length;\nconst sanctionCount = findings.filter((item) => item.category === 'sanction').length;\nlet score = 30;\nconst rationale = [];\nif (entityConfidence < 0.5) {\n  score += 12;\n  rationale.push({ factor: 'Entity resolution', detail: `Entity match confidence is ${entityConfidence.toFixed(2)}, below preferred threshold.`, impact: 'medium' });\n} else {\n  score -= 6;\n  rationale.push({ factor: 'Entity resolution', detail: `Entity match confidence is ${entityConfidence.toFixed(2)}, supporting data quality.`, impact: 'positive' });\n}\nif (highSeverityCount > 0) {\n  score += 35;\n  rationale.push({ factor: 'Adverse media', detail: `${highSeverityCount} high-severity negative media references detected.`, impact: 'high' });\n}\nif (mediumSeverityCount > 0) {\n  score += 18;\n  rationale.push({ factor: 'Adverse media', detail: `${mediumSeverityCount} medium-severity items require review.`, impact: 'medium' });\n}\nif (sanctionCount > 0) {\n  score += 30;\n  rationale.push({ factor: 'Watchlists', detail: `${sanctionCount} sanction/watchlist references surfaced.`, impact: 'critical' });\n}\nif (directorConfidenceAvg < 0.55) {\n  score += 10;\n  rationale.push({ factor: 'Leadership transparency', detail: 'Director profiles have low confidence from open web sources.', impact: 'medium' });\n} else if (directorConfidenceAvg > 0.75) {\n  score -= 8;\n  rationale.push({ factor: 'Leadership transparency', detail: 'Director profiles are well-correlated across open web sources.', impact: 'positive' });\n}\nif (executiveConfidenceAvg < 0.5) {\n  score += 8;\n  rationale.push({ factor: 'Executive coverage', detail: 'Limited CXO corroboration identified.', impact: 'medium' });\n}\nif ((businessIntel.pressReleases || []).length === 0) {\n  score += 4;\n  rationale.push({ factor: 'Media footprint', detail: 'No official press coverage located in top results.', impact: 'low' });\n} else {\n  score -= Math.min((businessIntel.pressReleases || []).length * 1.5, 6);\n}\nif (businessIntel.officialWebsite && businessIntel.officialWebsite.confidence >= 0.6) {\n  score -= 5;\n  rationale.push({ factor: 'Official presence', detail: 'Official website identified with strong confidence.', impact: 'positive' });\n} else {\n  score += 8;\n  rationale.push({ factor: 'Official presence', detail: 'Corporate website not confidently resolved.', impact: 'medium' });\n}\nscore = Math.max(0, Math.min(100, Math.round(score)));\nconst tier = score >= 70 ? 'High' : (score >= 40 ? 'Medium' : 'Low');\nconst risk = {\n  score,\n  tier,\n  rationale,\n  metrics: {\n    entityConfidence: Number(entityConfidence.toFixed(2)),\n    adverseHigh: highSeverityCount,\n    adverseMedium: mediumSeverityCount,\n    sanctions: sanctionCount,\n    directorConfidenceAvg: Number(directorConfidenceAvg.toFixed(2)),\n    executiveConfidenceAvg: Number(executiveConfidenceAvg.toFixed(2))\n  },\n  summary: `Counterparty risk assessed as ${tier} (${score}/100).`\n};\nreturn [{ ...$json, risk }];"
+        "functionCode": "const limit = (arr, size) => Array.isArray(arr) ? arr.slice(0, size) : [];\nconst context = {\n  companyName: $json.companyName,\n  identifiers: $json.entity?.identifiers || [],\n  aliases: limit($json.entity?.aliases || [], 8),\n  entityMatches: {\n    acra: limit($json.entityMatches?.acra || [], 3),\n    bloomberg: limit($json.entityMatches?.bloomberg || [], 3),\n    web: limit($json.entityMatches?.web || [], 3)\n  },\n  businessIntel: {\n    officialWebsite: $json.businessIntel?.officialWebsite || null,\n    pressReleases: limit($json.businessIntel?.pressReleases || [], 5),\n    annualReports: limit($json.businessIntel?.annualReports || [], 5),\n    directors: limit($json.businessIntel?.directors || [], 6),\n    executives: limit($json.businessIntel?.executives || [], 6)\n  },\n  adverseInsights: limit($json.adverseInsights?.findings || [], 8)\n};\nconst instructions = `You are an AML/KYC research analyst. Analyse the supplied open-web search context and highlight risk signals for the counterparty. Use only the provided evidence; do not invent facts. Respond in compact JSON with the following shape:\n{\n  \"summary\": string (<=150 words),\n  \"positiveIndicators\": string[],\n  \"negativeIndicators\": string[],\n  \"riskSignals\": [ { \"indicator\": string, \"severity\": \"low\"|\"medium\"|\"high\", \"evidence\": string } ],\n  \"recommendedActions\": string[]\n}`;\nconst prompt = `${instructions}\n\nContext:\n${JSON.stringify(context, null, 2)}`;\nreturn [{ ...$json, bedrockPrompt: prompt, bedrockSystemPrompt: 'You are a compliance analyst helping with business screening. Respond strictly in JSON.' }];"
+      },
+      "id": "8aa5ef3c-7af3-4f41-95af-8cb68cf812e2",
+      "name": "Prepare Bedrock Prompt",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        4200,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "chat",
+        "modelId": "anthropic.claude-3-sonnet-20240229-v1:0",
+        "systemPrompt": "You are a compliance analyst helping with business screening. Respond strictly in JSON.",
+        "userMessage": "={{$json.bedrockPrompt}}",
+        "responseFormat": "json",
+        "options": {
+          "temperature": 0.3,
+          "maxOutputTokens": 2048
+        }
+      },
+      "id": "53ece2d1-a0b7-4ba1-96a6-09fa52aca5c1",
+      "name": "Bedrock Chat Analysis",
+      "type": "n8n-nodes-base.amazonBedrock",
+      "typeVersion": 1,
+      "position": [
+        4440,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "index"
+      },
+      "id": "fa7904ff-4dca-4abf-8f75-8edc6402140b",
+      "name": "Merge Bedrock Analysis",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 4,
+      "position": [
+        4440,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const candidates = [];\nconst pushCandidate = (value) => {\n  if (value === undefined || value === null) {\n    return;\n  }\n  if (typeof value === 'string' && value.trim() === '') {\n    return;\n  }\n  candidates.push(value);\n};\npushCandidate($json.response);\npushCandidate($json.text);\npushCandidate($json.result);\nif (Array.isArray($json.results) && $json.results.length) {\n  pushCandidate($json.results[0]);\n}\nif ($json.rawResponse?.output_text) {\n  pushCandidate($json.rawResponse.output_text);\n}\nlet parsed = null;\nlet rawText = '';\nfor (const candidate of candidates) {\n  if (parsed) {\n    break;\n  }\n  if (typeof candidate === 'string') {\n    rawText = candidate.trim();\n    try {\n      parsed = JSON.parse(rawText);\n    } catch (error) {\n      parsed = null;\n    }\n  } else if (typeof candidate === 'object') {\n    const maybeText = candidate.text || candidate.response || candidate.output_text || candidate.completion;\n    if (maybeText) {\n      if (typeof maybeText === 'string') {\n        rawText = maybeText.trim();\n        try {\n          parsed = JSON.parse(rawText);\n        } catch (error) {\n          parsed = null;\n        }\n      }\n    } else if (!Array.isArray(candidate)) {\n      parsed = candidate;\n    }\n  }\n}\nif (!parsed && rawText) {\n  parsed = { summary: rawText };\n}\nconst safeArray = (value) => Array.isArray(value) ? value : [];\nconst normalizeSignals = (value) => {\n  if (!Array.isArray(value)) {\n    return [];\n  }\n  return value.map((item) => ({\n    indicator: item.indicator || item.title || item.signal || 'Unspecified indicator',\n    severity: (item.severity || 'medium').toLowerCase(),\n    evidence: item.evidence || item.support || item.details || ''\n  }));\n};\nconst bedrockAnalysis = {\n  summary: parsed?.summary || '',\n  positiveIndicators: safeArray(parsed?.positiveIndicators || parsed?.strengths),\n  negativeIndicators: safeArray(parsed?.negativeIndicators || parsed?.weaknesses),\n  riskSignals: normalizeSignals(parsed?.riskSignals || parsed?.alerts),\n  recommendedActions: safeArray(parsed?.recommendedActions || parsed?.nextSteps),\n  rawText: rawText || (typeof $json.response === 'string' ? $json.response : '')\n};\nconst output = { ...$json };\noutput.bedrockAnalysis = bedrockAnalysis;\ndelete output.response;\ndelete output.result;\ndelete output.results;\ndelete output.rawResponse;\ndelete output.text;\ndelete output.bedrockPrompt;\ndelete output.bedrockSystemPrompt;\nreturn [output];"
+      },
+      "id": "9dcfa1f0-98ea-4dd8-8c42-2b60252aca2a",
+      "name": "Process Bedrock Analysis",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        4680,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const adverseInsights = $json.adverseInsights || { findings: [] };\nconst businessIntel = $json.businessIntel || { directors: [], executives: [] };\nconst entity = $json.entity || { matchConfidence: 0 };\nconst bedrockAnalysis = $json.bedrockAnalysis || { riskSignals: [], positiveIndicators: [], negativeIndicators: [] };\nconst findings = Array.isArray(adverseInsights.findings) ? adverseInsights.findings : [];\nconst directors = Array.isArray(businessIntel.directors) ? businessIntel.directors : [];\nconst executives = Array.isArray(businessIntel.executives) ? businessIntel.executives : [];\nconst bedrockSignals = Array.isArray(bedrockAnalysis.riskSignals) ? bedrockAnalysis.riskSignals : [];\nconst entityConfidence = typeof entity.matchConfidence === 'number' ? entity.matchConfidence : 0.4;\nconst directorConfidenceAvg = directors.length ? directors.reduce((sum, item) => sum + (item.confidence || 0), 0) / directors.length : 0;\nconst executiveConfidenceAvg = executives.length ? executives.reduce((sum, item) => sum + (item.confidence || 0), 0) / executives.length : 0;\nconst highSeverityCount = findings.filter((item) => item.severity === 'high').length;\nconst mediumSeverityCount = findings.filter((item) => item.severity === 'medium').length;\nconst sanctionCount = findings.filter((item) => item.category === 'sanction').length;\nconst bedrockHigh = bedrockSignals.filter((item) => item.severity === 'high').length;\nconst bedrockMedium = bedrockSignals.filter((item) => item.severity === 'medium').length;\nlet score = 30;\nconst rationale = [];\nif (entityConfidence < 0.5) {\n  score += 12;\n  rationale.push({ factor: 'Entity resolution', detail: `Entity match confidence is ${entityConfidence.toFixed(2)}, below preferred threshold.`, impact: 'medium' });\n} else {\n  score -= 6;\n  rationale.push({ factor: 'Entity resolution', detail: `Entity match confidence is ${entityConfidence.toFixed(2)}, supporting data quality.`, impact: 'positive' });\n}\nif (highSeverityCount > 0) {\n  score += 35;\n  rationale.push({ factor: 'Adverse media', detail: `${highSeverityCount} high-severity negative media references detected.`, impact: 'high' });\n}\nif (mediumSeverityCount > 0) {\n  score += 18;\n  rationale.push({ factor: 'Adverse media', detail: `${mediumSeverityCount} medium-severity items require review.`, impact: 'medium' });\n}\nif (sanctionCount > 0) {\n  score += 30;\n  rationale.push({ factor: 'Watchlists', detail: `${sanctionCount} sanction/watchlist references surfaced.`, impact: 'critical' });\n}\nif (bedrockHigh > 0) {\n  score += 20;\n  rationale.push({ factor: 'Bedrock risk signals', detail: `${bedrockHigh} high-severity signals highlighted by AI review.`, impact: 'high' });\n}\nif (bedrockMedium > 0) {\n  score += 10;\n  rationale.push({ factor: 'Bedrock risk signals', detail: `${bedrockMedium} medium-severity AI risk flags noted.`, impact: 'medium' });\n}\nif (!bedrockHigh && !bedrockMedium && bedrockAnalysis.positiveIndicators?.length) {\n  score -= Math.min(bedrockAnalysis.positiveIndicators.length * 2, 8);\n  rationale.push({ factor: 'Bedrock positives', detail: 'AI review surfaced supportive governance indicators.', impact: 'positive' });\n}\nif (directorConfidenceAvg < 0.55) {\n  score += 10;\n  rationale.push({ factor: 'Leadership transparency', detail: 'Director profiles have low confidence from open web sources.', impact: 'medium' });\n} else if (directorConfidenceAvg > 0.75) {\n  score -= 8;\n  rationale.push({ factor: 'Leadership transparency', detail: 'Director profiles are well-correlated across open web sources.', impact: 'positive' });\n}\nif (executiveConfidenceAvg < 0.5) {\n  score += 8;\n  rationale.push({ factor: 'Executive coverage', detail: 'Limited CXO corroboration identified.', impact: 'medium' });\n}\nif ((businessIntel.pressReleases || []).length === 0) {\n  score += 4;\n  rationale.push({ factor: 'Media footprint', detail: 'No official press coverage located in top results.', impact: 'low' });\n} else {\n  score -= Math.min((businessIntel.pressReleases || []).length * 1.5, 6);\n}\nif (businessIntel.officialWebsite && businessIntel.officialWebsite.confidence >= 0.6) {\n  score -= 5;\n  rationale.push({ factor: 'Official presence', detail: 'Official website identified with strong confidence.', impact: 'positive' });\n} else {\n  score += 8;\n  rationale.push({ factor: 'Official presence', detail: 'Corporate website not confidently resolved.', impact: 'medium' });\n}\nscore = Math.max(0, Math.min(100, Math.round(score)));\nconst tier = score >= 70 ? 'High' : (score >= 40 ? 'Medium' : 'Low');\nconst risk = {\n  score,\n  tier,\n  rationale,\n  metrics: {\n    entityConfidence: Number(entityConfidence.toFixed(2)),\n    adverseHigh: highSeverityCount,\n    adverseMedium: mediumSeverityCount,\n    sanctions: sanctionCount,\n    directorConfidenceAvg: Number(directorConfidenceAvg.toFixed(2)),\n    executiveConfidenceAvg: Number(executiveConfidenceAvg.toFixed(2)),\n    bedrockHigh,\n    bedrockMedium\n  },\n  summary: `Counterparty risk assessed as ${tier} (${score}/100).`\n};\nreturn [{ ...$json, risk }];"
       },
       "id": "2b4e0dc2-0c53-4fde-b144-5398261c82e9",
       "name": "Risk Scoring & Rationale Agent",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        4340,
-        0
+        4920,
+        -60
       ]
     },
     {
       "parameters": {
-        "functionCode": "const entity = $json.entity || {};\nconst businessIntel = $json.businessIntel || {};\nconst adverseInsights = $json.adverseInsights || { findings: [] };\nconst risk = $json.risk || { score: 'N/A', tier: 'Unknown', rationale: [] };\nconst identifiers = Array.isArray(entity.identifiers) ? entity.identifiers : [];\nconst aliases = Array.isArray(entity.aliases) ? entity.aliases : [];\nconst directors = Array.isArray(businessIntel.directors) ? businessIntel.directors.slice(0, 8) : [];\nconst executives = Array.isArray(businessIntel.executives) ? businessIntel.executives.slice(0, 8) : [];\nconst adverseFindings = Array.isArray(adverseInsights.findings) ? adverseInsights.findings.slice(0, 8) : [];\nconst pressReleases = Array.isArray(businessIntel.pressReleases) ? businessIntel.pressReleases : [];\nconst annualReports = Array.isArray(businessIntel.annualReports) ? businessIntel.annualReports : [];\nconst knowledgeGaps = Array.isArray(businessIntel.knowledgeGaps) ? businessIntel.knowledgeGaps : [];\nconst formatConfidence = (value) => typeof value === 'number' ? value.toFixed(2) : 'N/A';\nconst formatLink = (label, url) => url ? `[${label}](${url})` : label;\nconst lines = [];\nlines.push('# Business Screening Evaluation (BSE)');\nlines.push('');\nlines.push(`**Company:** ${entity.canonicalName || $json.companyName || 'Unknown'}`);\nlines.push(`**Risk Tier:** ${risk.tier || 'Unknown'} (${risk.score !== undefined ? risk.score : 'N/A'}/100)`);\nlines.push('');\nlines.push('## Company Snapshot');\nlines.push(`- Canonical Name: ${entity.canonicalName || 'Not resolved'}`);\nlines.push(`- Normalized Name: ${entity.normalizedName || 'N/A'}`);\nlines.push(`- Official Identifiers: ${identifiers.length ? identifiers.map((id) => `${id.type} ${id.value}`).join('; ') : 'None surfaced.'}`);\nlines.push(`- Aliases: ${aliases.length ? aliases.join('; ') : 'None surfaced in open web results.'}`);\nlines.push(`- Entity Match Confidence: ${typeof entity.matchConfidence === 'number' ? entity.matchConfidence.toFixed(2) : 'N/A'}`);\nif (entity.primarySource && entity.primarySource.link) {\n  lines.push(`- Primary Source: ${formatLink(entity.primarySource.title || entity.primarySource.domain || 'Source', entity.primarySource.link)} (confidence ${formatConfidence(entity.primarySource.confidence)})`);\n}\nif (entity.sourceConfidence) {\n  lines.push(`- Source Confidence Map: ACRA ${formatConfidence(entity.sourceConfidence.acra)} | Bloomberg ${formatConfidence(entity.sourceConfidence.bloomberg)} | Web ${formatConfidence(entity.sourceConfidence.web)}`);\n}\nlines.push('');\nlines.push('## Business Intelligence Highlights');\nif (businessIntel.officialWebsite) {\n  lines.push(`- Official Website: ${formatLink(businessIntel.officialWebsite.domain || businessIntel.officialWebsite.title || 'Website', businessIntel.officialWebsite.url)} (confidence ${formatConfidence(businessIntel.officialWebsite.confidence)})`);\n} else {\n  lines.push('- Official Website: Not confidently identified.');\n}\nif (pressReleases.length) {\n  lines.push('- Press Coverage:');\n  pressReleases.forEach((item) => {\n    lines.push(`  - ${formatLink(item.title || item.domain || 'Press reference', item.link)} (confidence ${formatConfidence(item.confidence)})`);\n  });\n} else {\n  lines.push('- Press Coverage: No press releases detected in top search results.');\n}\nif (annualReports.length) {\n  lines.push('- Annual Reports:');\n  annualReports.forEach((item) => {\n    lines.push(`  - ${formatLink(item.title || item.domain || 'Annual report', item.link)} (confidence ${formatConfidence(item.confidence)})`);\n  });\n} else {\n  lines.push('- Annual Reports: No annual report artefacts captured.');\n}\nif (knowledgeGaps.length) {\n  lines.push('- Knowledge Gaps: ' + knowledgeGaps.join(' | '));\n}\nlines.push('');\nlines.push('## Leadership');\nif (directors.length) {\n  lines.push('| Director | Confidence | Source |');\n  lines.push('| --- | --- | --- |');\n  directors.forEach((director) => {\n    lines.push(`| ${director.name} | ${formatConfidence(director.confidence)} | ${formatLink(director.domain || 'source', director.source)} |`);\n  });\n} else {\n  lines.push('No named directors discovered via open web search.');\n}\nlines.push('');\nif (executives.length) {\n  lines.push('| Executive | Role | Confidence | Source |');\n  lines.push('| --- | --- | --- | --- |');\n  executives.forEach((executive) => {\n    lines.push(`| ${executive.name} | ${executive.role || 'Executive'} | ${formatConfidence(executive.confidence)} | ${formatLink(executive.domain || 'source', executive.source)} |`);\n  });\n} else {\n  lines.push('No CXO profiles discovered via open web search.');\n}\nlines.push('');\nlines.push('## Adverse Media & Litigation');\nif (adverseFindings.length) {\n  lines.push('| Rank | Severity | Category | Confidence | Source |');\n  lines.push('| --- | --- | --- | --- | --- |');\n  adverseFindings.forEach((item) => {\n    const sourceLabel = item.domain || 'link';\n    lines.push(`| ${item.rank} | ${item.severity} | ${item.category} | ${formatConfidence(item.confidence)} | ${formatLink(sourceLabel, item.link)} |`);\n  });\n} else {\n  lines.push('No material adverse media surfaced in top search results.');\n}\nlines.push('');\nlines.push('## Risk Assessment');\nlines.push(`- Overall Score: ${risk.score !== undefined ? risk.score : 'N/A'} (${risk.tier || 'Unrated'})`);\nif (risk.metrics) {\n  lines.push(`- Entity Confidence: ${formatConfidence(risk.metrics.entityConfidence)}`);\n  lines.push(`- Adverse Media (high/medium): ${risk.metrics.adverseHigh}/${risk.metrics.adverseMedium}`);\n  lines.push(`- Sanctions Hits: ${risk.metrics.sanctions}`);\n  lines.push(`- Director Confidence Avg: ${formatConfidence(risk.metrics.directorConfidenceAvg)}`);\n  lines.push(`- Executive Confidence Avg: ${formatConfidence(risk.metrics.executiveConfidenceAvg)}`);\n}\nlines.push('');\nlines.push('### Rationale');\nif (Array.isArray(risk.rationale) && risk.rationale.length) {\n  risk.rationale.forEach((item) => {\n    lines.push(`- ${item.factor}: ${item.detail} (impact ${item.impact})`);\n  });\n} else {\n  lines.push('- No specific rationale captured.');\n}\nlines.push('');\nlines.push('## References');\nconst referenceList = [];\nconst seenRefs = new Set();\nconst pushReference = (label, link) => {\n  if (!link) {\n    return;\n  }\n  if (seenRefs.has(link)) {\n    return;\n  }\n  seenRefs.add(link);\n  referenceList.push({ label, link });\n};\nif (entity.primarySource && entity.primarySource.link) {\n  pushReference(entity.primarySource.title || entity.primarySource.domain || 'Primary source', entity.primarySource.link);\n}\npressReleases.forEach((item) => pushReference(item.title || item.domain || 'Press reference', item.link));\nannualReports.forEach((item) => pushReference(item.title || item.domain || 'Annual report', item.link));\nadverseFindings.forEach((item) => pushReference(item.title || item.domain || 'Adverse reference', item.link));\nif (referenceList.length) {\n  referenceList.forEach((ref, index) => {\n    lines.push(`${index + 1}. ${formatLink(ref.label, ref.link)}`);\n  });\n} else {\n  lines.push('- None recorded during screening.');\n}\nconst report = lines.join('\n');\nreturn [{ ...$json, bseReport: report }];"
+        "functionCode": "const entity = $json.entity || {};\nconst businessIntel = $json.businessIntel || {};\nconst adverseInsights = $json.adverseInsights || { findings: [] };\nconst bedrockAnalysis = $json.bedrockAnalysis || {};\nconst risk = $json.risk || { score: 'N/A', tier: 'Unknown', rationale: [] };\nconst identifiers = Array.isArray(entity.identifiers) ? entity.identifiers : [];\nconst aliases = Array.isArray(entity.aliases) ? entity.aliases : [];\nconst directors = Array.isArray(businessIntel.directors) ? businessIntel.directors.slice(0, 8) : [];\nconst executives = Array.isArray(businessIntel.executives) ? businessIntel.executives.slice(0, 8) : [];\nconst adverseFindings = Array.isArray(adverseInsights.findings) ? adverseInsights.findings.slice(0, 8) : [];\nconst pressReleases = Array.isArray(businessIntel.pressReleases) ? businessIntel.pressReleases : [];\nconst annualReports = Array.isArray(businessIntel.annualReports) ? businessIntel.annualReports : [];\nconst knowledgeGaps = Array.isArray(businessIntel.knowledgeGaps) ? businessIntel.knowledgeGaps : [];\nconst positiveIndicators = Array.isArray(bedrockAnalysis.positiveIndicators) ? bedrockAnalysis.positiveIndicators : [];\nconst negativeIndicators = Array.isArray(bedrockAnalysis.negativeIndicators) ? bedrockAnalysis.negativeIndicators : [];\nconst bedrockSignals = Array.isArray(bedrockAnalysis.riskSignals) ? bedrockAnalysis.riskSignals.slice(0, 8) : [];\nconst recommendations = Array.isArray(bedrockAnalysis.recommendedActions) ? bedrockAnalysis.recommendedActions : [];\nconst formatConfidence = (value) => typeof value === 'number' ? value.toFixed(2) : 'N/A';\nconst formatLink = (label, url) => url ? `[${label}](${url})` : label;\nconst lines = [];\nlines.push('# Business Screening Evaluation (BSE)');\nlines.push('');\nlines.push(`**Company:** ${entity.canonicalName || $json.companyName || 'Unknown'}`);\nlines.push(`**Risk Tier:** ${risk.tier || 'Unknown'} (${risk.score !== undefined ? risk.score : 'N/A'}/100)`);\nlines.push('');\nlines.push('## Company Snapshot');\nlines.push(`- Canonical Name: ${entity.canonicalName || 'Not resolved'}`);\nlines.push(`- Normalized Name: ${entity.normalizedName || 'N/A'}`);\nlines.push(`- Official Identifiers: ${identifiers.length ? identifiers.map((id) => `${id.type} ${id.value}`).join('; ') : 'None surfaced.'}`);\nlines.push(`- Aliases: ${aliases.length ? aliases.join('; ') : 'None surfaced in open web results.'}`);\nlines.push(`- Entity Match Confidence: ${typeof entity.matchConfidence === 'number' ? entity.matchConfidence.toFixed(2) : 'N/A'}`);\nif (entity.primarySource && entity.primarySource.link) {\n  lines.push(`- Primary Source: ${formatLink(entity.primarySource.title || entity.primarySource.domain || 'Source', entity.primarySource.link)} (confidence ${formatConfidence(entity.primarySource.confidence)})`);\n}\nif (entity.sourceConfidence) {\n  lines.push(`- Source Confidence Map: ACRA ${formatConfidence(entity.sourceConfidence.acra)} | Bloomberg ${formatConfidence(entity.sourceConfidence.bloomberg)} | Web ${formatConfidence(entity.sourceConfidence.web)}`);\n}\nlines.push('');\nlines.push('## Business Intelligence Highlights');\nif (businessIntel.officialWebsite) {\n  lines.push(`- Official Website: ${formatLink(businessIntel.officialWebsite.domain || businessIntel.officialWebsite.title || 'Website', businessIntel.officialWebsite.url)} (confidence ${formatConfidence(businessIntel.officialWebsite.confidence)})`);\n} else {\n  lines.push('- Official Website: Not confidently identified.');\n}\nif (pressReleases.length) {\n  lines.push('- Press Coverage:');\n  pressReleases.forEach((item) => {\n    lines.push(`  - ${formatLink(item.title || item.domain || 'Press reference', item.link)} (confidence ${formatConfidence(item.confidence)})`);\n  });\n} else {\n  lines.push('- Press Coverage: No press releases detected in top search results.');\n}\nif (annualReports.length) {\n  lines.push('- Annual Reports:');\n  annualReports.forEach((item) => {\n    lines.push(`  - ${formatLink(item.title || item.domain || 'Annual report', item.link)} (confidence ${formatConfidence(item.confidence)})`);\n  });\n} else {\n  lines.push('- Annual Reports: No annual report artefacts captured.');\n}\nif (knowledgeGaps.length) {\n  lines.push('- Knowledge Gaps: ' + knowledgeGaps.join(' | '));\n}\nlines.push('');\nlines.push('## Bedrock Analysis');\nif (bedrockAnalysis.summary) {\n  lines.push(bedrockAnalysis.summary);\n} else {\n  lines.push('AI review summary not yet available.');\n}\nif (positiveIndicators.length) {\n  lines.push('- Positive Indicators: ' + positiveIndicators.join(' | '));\n}\nif (negativeIndicators.length) {\n  lines.push('- Negative Indicators: ' + negativeIndicators.join(' | '));\n}\nif (bedrockSignals.length) {\n  lines.push('| Risk Signal | Severity | Evidence |');\n  lines.push('| --- | --- | --- |');\n  bedrockSignals.forEach((signal) => {\n    lines.push(`| ${signal.indicator} | ${signal.severity} | ${signal.evidence || ''} |`);\n  });\n}\nif (recommendations.length) {\n  lines.push('- Recommended Actions: ' + recommendations.join(' | '));\n}\nlines.push('');\nlines.push('## Leadership');\nif (directors.length) {\n  lines.push('| Director | Confidence | Source |');\n  lines.push('| --- | --- | --- |');\n  directors.forEach((director) => {\n    lines.push(`| ${director.name} | ${formatConfidence(director.confidence)} | ${formatLink(director.domain || 'source', director.source)} |`);\n  });\n} else {\n  lines.push('No named directors discovered via open web search.');\n}\nlines.push('');\nif (executives.length) {\n  lines.push('| Executive | Role | Confidence | Source |');\n  lines.push('| --- | --- | --- | --- |');\n  executives.forEach((executive) => {\n    lines.push(`| ${executive.name} | ${executive.role || 'Executive'} | ${formatConfidence(executive.confidence)} | ${formatLink(executive.domain || 'source', executive.source)} |`);\n  });\n} else {\n  lines.push('No CXO profiles discovered via open web search.');\n}\nlines.push('');\nlines.push('## Adverse Media & Litigation');\nif (adverseFindings.length) {\n  lines.push('| Rank | Severity | Category | Confidence | Source |');\n  lines.push('| --- | --- | --- | --- | --- |');\n  adverseFindings.forEach((item) => {\n    const sourceLabel = item.domain || 'link';\n    lines.push(`| ${item.rank} | ${item.severity} | ${item.category} | ${formatConfidence(item.confidence)} | ${formatLink(sourceLabel, item.link)} |`);\n  });\n} else {\n  lines.push('No material adverse media surfaced in top search results.');\n}\nlines.push('');\nlines.push('## Risk Assessment');\nlines.push(`- Overall Score: ${risk.score !== undefined ? risk.score : 'N/A'} (${risk.tier || 'Unrated'})`);\nif (risk.metrics) {\n  lines.push(`- Entity Confidence: ${formatConfidence(risk.metrics.entityConfidence)}`);\n  lines.push(`- Adverse Media (high/medium): ${risk.metrics.adverseHigh}/${risk.metrics.adverseMedium}`);\n  lines.push(`- Sanctions Hits: ${risk.metrics.sanctions}`);\n  lines.push(`- Director Confidence Avg: ${formatConfidence(risk.metrics.directorConfidenceAvg)}`);\n  lines.push(`- Executive Confidence Avg: ${formatConfidence(risk.metrics.executiveConfidenceAvg)}`);\n  lines.push(`- Bedrock Signals (high/medium): ${risk.metrics.bedrockHigh}/${risk.metrics.bedrockMedium}`);\n}\nlines.push('');\nlines.push('### Rationale');\nif (Array.isArray(risk.rationale) && risk.rationale.length) {\n  risk.rationale.forEach((item) => {\n    lines.push(`- ${item.factor}: ${item.detail} (impact ${item.impact})`);\n  });\n} else {\n  lines.push('- No specific rationale captured.');\n}\nlines.push('');\nlines.push('## References');\nconst referenceList = [];\nconst seenRefs = new Set();\nconst pushReference = (label, link) => {\n  if (!link) {\n    return;\n  }\n  if (seenRefs.has(link)) {\n    return;\n  }\n  seenRefs.add(link);\n  referenceList.push({ label, link });\n};\nif (entity.primarySource && entity.primarySource.link) {\n  pushReference(entity.primarySource.title || entity.primarySource.domain || 'Primary source', entity.primarySource.link);\n}\npressReleases.forEach((item) => pushReference(item.title || item.domain || 'Press reference', item.link));\nannualReports.forEach((item) => pushReference(item.title || item.domain || 'Annual report', item.link));\nadverseFindings.forEach((item) => pushReference(item.title || item.domain || 'Adverse reference', item.link));\nif (referenceList.length) {\n  referenceList.forEach((ref, index) => {\n    lines.push(`${index + 1}. ${formatLink(ref.label, ref.link)}`);\n  });\n} else {\n  lines.push('- None recorded during screening.');\n}\nconst report = lines.join('\n');\nreturn [{ ...$json, bseReport: report }];"
       },
       "id": "f41abeaf-ad61-4fcb-9464-00f097daa770",
       "name": "BSE Report Synthesizer",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        4580,
-        0
+        5160,
+        -60
       ]
     }
   ],
   "connections": {
+    "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Chat Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Manual Trigger": {
       "main": [
         [
           {
             "node": "Set Company Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Chat Input": {
+      "main": [
+        [
+          {
+            "node": "Prepare Search Targets",
             "type": "main",
             "index": 0
           }
@@ -598,6 +705,55 @@
       ]
     },
     "Adverse Media & Litigation Agent": {
+      "main": [
+        [
+          {
+            "node": "Prepare Bedrock Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Bedrock Prompt": {
+      "main": [
+        [
+          {
+            "node": "Bedrock Chat Analysis",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Bedrock Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bedrock Chat Analysis": {
+      "main": [
+        [
+          {
+            "node": "Merge Bedrock Analysis",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Bedrock Analysis": {
+      "main": [
+        [
+          {
+            "node": "Process Bedrock Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Bedrock Analysis": {
       "main": [
         [
           {
