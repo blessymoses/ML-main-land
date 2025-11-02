@@ -411,3 +411,50 @@ try:
 except Exception as e:
     raise Exception("unexpected event.", e)
 
+# cleanup
+action_group_id = agent_action_group_response['agentActionGroup']['actionGroupId']
+action_group_name = agent_action_group_response['agentActionGroup']['actionGroupName']
+
+response = bedrock_agent_client.update_agent_action_group(
+    agentId=agent_id,
+    agentVersion='DRAFT',
+    actionGroupId= action_group_id,
+    actionGroupName=action_group_name,
+    actionGroupExecutor={
+        'lambda': lambda_function['FunctionArn']
+    },
+    functionSchema={
+        'functions': agent_functions
+    },
+    actionGroupState='DISABLED',
+)
+
+action_group_deletion = bedrock_agent_client.delete_agent_action_group(
+    agentId=agent_id,
+    agentVersion='DRAFT',
+    actionGroupId= action_group_id
+)
+response = bedrock_agent_client.delete_agent_alias(
+    agentAliasId=agent_alias_id,
+    agentId=agent_id
+)
+agent_deletion = bedrock_agent_client.delete_agent(
+    agentId=agent_id
+)
+lambda_client.delete_function(
+    FunctionName=lambda_function_name
+)
+for policy in [agent_bedrock_allow_policy_name]:
+    iam_client.detach_role_policy(RoleName=agent_role_name, PolicyArn=f'arn:aws:iam::{account_id}:policy/{policy}')
+    
+iam_client.detach_role_policy(RoleName=lambda_function_role, PolicyArn='arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole')
+
+for role_name in [agent_role_name, lambda_function_role]:
+    iam_client.delete_role(
+        RoleName=role_name
+    )
+
+for policy in [agent_bedrock_policy]:
+    iam_client.delete_policy(
+        PolicyArn=policy['Policy']['Arn']
+)
