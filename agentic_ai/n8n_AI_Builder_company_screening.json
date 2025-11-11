@@ -1,0 +1,479 @@
+{
+  "name": "Company Screening and Business Risk Evaluation Report Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Company Screening Request",
+        "formDescription": "Enter the company name to generate a comprehensive Business Screening & Evaluation (BSE) report",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Company Name",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "3791d586-5bb3-4cc1-b5c8-f92f1f80d90d",
+      "name": "Company Screening Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "dc281f0f-e3ed-4953-a4d8-dabfe94097e3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "recipient_email",
+              "value": "<__PLACEHOLDER_VALUE__Email address to receive BSE report__>",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "company_name",
+              "value": "={{ $json.company_name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "ba706bd2-ab05-43cc-a9bf-940e76142ed3",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Company to research: {{ $json.company_name }}",
+        "options": {
+          "systemMessage": "You are a research orchestrator agent specialized in company intelligence gathering.\n\nYour task is to:\n1. Use the SerpAPI Search Tool to find comprehensive information about the target company\n2. Search for: official website, company profile, ACRA BizFile records, Bloomberg LEI data, directors, CXOs, shareholders, subsidiaries, aliases, and previous names\n3. Search for adverse media: fraud allegations, defaults, enforcement actions, lawsuits, sanctions, watchlist hits\n4. Return a structured list of URLs and key findings for further processing\n5. Focus on authoritative sources: official websites, government databases, reputable news outlets\n\nOutput Format:\nReturn a JSON array of findings with: {source_type, url, snippet, relevance_score}"
+        }
+      },
+      "id": "627b4430-4469-49f7-b19a-8ca2c443f6fb",
+      "name": "Research Orchestrator Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "400b2ca9-2d71-46b2-8e2c-c4c74ea0013c",
+      "name": "Bedrock Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAwsBedrock",
+      "typeVersion": 1.1,
+      "position": [
+        456,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "3850c39b-8d50-4435-b302-e69456546000",
+      "name": "SerpAPI Search Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+      "typeVersion": 1,
+      "position": [
+        584,
+        224
+      ],
+      "credentials": {
+        "serpApi": {
+          "id": "4FvmT7ijzXXPiRtP",
+          "name": "SerpAPI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "timeout": 30000
+        }
+      },
+      "id": "5295b0b8-65ec-4880-83fe-375d8bb150ff",
+      "name": "Fetch Web Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "sourceData": "binary",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "mainContent",
+              "cssSelector": "body",
+              "returnValue": "html"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ec9a0e6c-a7ef-49d2-b1a6-ebb921404ce7",
+      "name": "Extract HTML Content",
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1024,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "f4efcf31-73e3-4054-bcb7-e388901cd2c6",
+      "name": "Aggregate Research Results",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this company data: {{ $json.data }}",
+        "options": {
+          "systemMessage": "You are a risk analysis specialist for company screening and evaluation.\n\nYour task is to:\n1. Analyze all gathered company information for risk indicators\n2. Compute risk sub-scores (0-100 scale):\n   - Governance Risk: based on director/CXO backgrounds, corporate structure\n   - Adverse Media Risk: based on negative news, litigation, enforcement actions\n   - Sector Risk: based on industry-specific risk factors\n   - Geography Risk: based on jurisdictional and regional factors\n3. Calculate overall risk score using weighted formula: Overall = (Governance * 0.3) + (Adverse Media * 0.4) + (Sector * 0.15) + (Geography * 0.15)\n4. Provide transparent rationale for each score with evidence citations\n5. Flag unresolved allegations and conflicting information\n6. Assign confidence scores to each finding\n\nOutput Format:\nReturn JSON with: {overall_risk, governance_risk, adverse_media_risk, sector_risk, geography_risk, rationale, confidence_scores, flags}"
+        }
+      },
+      "id": "fec02547-e10b-4a70-a234-808733fb1a22",
+      "name": "Risk Analysis Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1472,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "91d9379a-0758-48dc-ac76-aeb716fc6aca",
+      "name": "Bedrock Chat Model for Risk Analysis",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAwsBedrock",
+      "typeVersion": 1.1,
+      "position": [
+        1544,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate BSE report for: {{ $('Workflow Configuration').first().json.company_name }}. Risk analysis: {{ $json.output }}",
+        "options": {
+          "systemMessage": "You are a Business Screening & Evaluation (BSE) report generator.\n\nYour task is to:\n1. Synthesize all gathered intelligence into a comprehensive, auditable BSE report\n2. Structure the report with these sections:\n   A) Executive Summary\n   B) Company Snapshot (canonical name, UEN, LEI, aliases, incorporation date, registered address)\n   C) Ownership & Shareholding (major holders if available)\n   D) Directors & CXOs (table with name, role, key facts, confidence scores)\n   E) Adverse Media & Sanctions (clustered summary with severity, recency, source reputation)\n   F) Risk Assessment (overall + sub-scores with methodology and rationale)\n   G) References & Provenance (clickable links, timestamps, source hashes)\n3. Format as professional HTML with proper styling\n4. Include confidence indicators for each data point\n5. Highlight unverified claims and conflicting information\n6. Ensure all material claims have source citations\n\nOutput Format:\nReturn complete HTML document ready for PDF conversion"
+        }
+      },
+      "id": "7dd1bd4f-4744-4f0b-8980-60d4ab3799b2",
+      "name": "Report Generator Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1824,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "a4e5b139-b334-4330-be9f-67467d65e657",
+      "name": "Bedrock Chat Model for Report",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAwsBedrock",
+      "typeVersion": 1.1,
+      "position": [
+        1896,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "html",
+        "binaryPropertyName": "output",
+        "options": {
+          "fileName": "={{ 'BSE_Report_' + $('Workflow Configuration').first().json.company_name + '_' + $now.format('yyyy-MM-dd') + '.pdf' }}"
+        }
+      },
+      "id": "4c6533ad-6b58-4c96-a074-a00d772df0d8",
+      "name": "Convert to PDF",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2176,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $fromAI('to') }}",
+        "subject": "={{ $fromAI('subject') }}",
+        "message": "={{ $fromAI('message_html') }}",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "id": "c49fe089-bee2-454c-8576-d81c96d9f58c",
+      "name": "Gmail Send Tool",
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        2536,
+        224
+      ],
+      "webhookId": "9a7193e4-4a00-4797-97e8-9a9d928c74bf",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "E9XqoawivDmvyYgY",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Send BSE report for {{ $('Workflow Configuration').first().json.company_name }} to {{ $('Workflow Configuration').first().json.recipient_email }}",
+        "options": {
+          "systemMessage": "You are an email delivery agent.\n\nYour task is to:\n1. Use the Gmail Send Tool to email the BSE report PDF\n2. Send to the recipient specified in the workflow configuration\n3. Use subject: \"BSE Report - [Company Name] - [Date]\"\n4. Include a professional email body summarizing the report contents\n5. Attach the PDF file generated in the previous step\n\nCall the Gmail tool with appropriate parameters to complete the delivery."
+        }
+      },
+      "id": "b1cca23f-dc93-4ed5-b2b5-f19a2446693f",
+      "name": "Email Delivery Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        2400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "45111107-e8d4-4a67-bc9b-e71f12eefb1b",
+      "name": "Bedrock Chat Model for Email",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAwsBedrock",
+      "typeVersion": 1.1,
+      "position": [
+        2408,
+        224
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Company Screening Form": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Research Orchestrator Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bedrock Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Research Orchestrator Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SerpAPI Search Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Research Orchestrator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Orchestrator Agent": {
+      "main": [
+        [
+          {
+            "node": "Fetch Web Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Web Content": {
+      "main": [
+        [
+          {
+            "node": "Extract HTML Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract HTML Content": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Research Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Research Results": {
+      "main": [
+        [
+          {
+            "node": "Risk Analysis Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bedrock Chat Model for Risk Analysis": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Risk Analysis Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Risk Analysis Agent": {
+      "main": [
+        [
+          {
+            "node": "Report Generator Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bedrock Chat Model for Report": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Report Generator Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report Generator Agent": {
+      "main": [
+        [
+          {
+            "node": "Convert to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to PDF": {
+      "main": [
+        [
+          {
+            "node": "Email Delivery Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bedrock Chat Model for Email": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Email Delivery Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Send Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Email Delivery Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "778e9a76-8887-46bb-a55d-76b18b9cf3fd",
+  "meta": {
+    "instanceId": "e5ac5c11e2c7e42897b1f02e49f37eaa0a729dd4aae54827344cda4b0fd4f80c"
+  },
+  "id": "9GrgfrN5BPPOUBVU",
+  "tags": []
+}
