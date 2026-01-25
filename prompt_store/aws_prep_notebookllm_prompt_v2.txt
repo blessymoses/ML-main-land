@@ -85,6 +85,33 @@ Use language like:
 
 “This option is tempting but incorrect because…”
 “AWS exams reject this because…”
+
+8.1 Execution Order & Sequencing (ORDERING QUESTIONS – EXAM CRITICAL)
+
+This section is mandatory when the service appears in ORDERING / SEQUENCING questions.
+
+Explicitly explain:
+- The correct step-by-step order AWS expects
+- What MUST happen FIRST
+- What MUST happen LAST
+- Which steps require validation, approval, or quality gates before proceeding
+
+Call out common ordering traps AWS uses, such as:
+- Defining evaluation metrics AFTER testing (incorrect)
+- Running A/B tests before creating a test dataset (incorrect)
+- Analyzing results before automated quality gates (incorrect)
+- Performing inference before applying guardrails (incorrect)
+- Triggering ingestion or deployment before schema or configuration is finalized (incorrect)
+
+Use explicit exam language such as:
+- “AWS expects this step BEFORE X”
+- “This step is always AFTER Y in exam scenarios”
+- “This option is correct steps but wrong order – AWS will mark it incorrect”
+
+If the service participates in workflows (evaluation, ingestion, governance, RAG, agents, CI/CD):
+- Map it to a lifecycle phase (Define → Prepare → Execute → Validate → Observe)
+- Clearly state where this service sits in that lifecycle
+
 9. Observability, Limits, and Failure Modes (New)
 Explicitly include:
 
@@ -104,5 +131,6 @@ Use short sentences
 Avoid marketing language
 Be opinionated where AWS is opinionated
 If something is unlikely to appear in the exam, omit it
+
 Final Instruction
 Generate notes that help me choose the correct answer, not just understand the service. If a concept appears frequently in practice questions, prioritize it.
