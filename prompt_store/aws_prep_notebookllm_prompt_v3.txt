@@ -3,7 +3,12 @@ Sources (exam guide, GenAI Lens, official AWS docs) are already loaded in Notebo
 
 Task: generate exam‑oriented learning notes for the AWS service below.
 
-Service/Topic: {{SERVICE_NAME}}
+Service/Topic: Amazon OpenSearch Service - All concepts and best prctices
+	•	Vector search basics
+	•	Hybrid search (keyword + vector)
+	•	Reranking use cases
+	•	OpenSearch vs pgvector vs Kendra
+
 
 Goal: help answer scenario‑based multiple‑choice questions correctly (not documentation summarization).
 
@@ -11,7 +16,6 @@ OUTPUT RULES (STRICT)
 - Focus on decision‑making, trade‑offs, and AWS exam intent
 - Explain why this service is correct AND why others are disqualified
 - Explicitly call out exam traps, distractors, and “near‑miss” options
-- Assume AWS fundamentals are known
 - Be concise, high‑signal, revision‑friendly
 
 REQUIRED STRUCTURE
@@ -45,7 +49,7 @@ Clearly state:
 - Scenarios where AWS expects another service
 - Explicit comparisons (Do NOT choose this if X → AWS expects Y)
 
-6. Exam‑Relevant Best Practices
+6. Best Practices
 - Security (IAM, encryption, data boundaries, PII)
 - Observability (CloudWatch logs, metrics, tracing)
 - Reliability, scaling

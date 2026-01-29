@@ -1,0 +1,287 @@
+⸻
+
+LLMOps, AIOps, AgentOps – Understanding the Ops Landscape
+
+⸻
+
+What is LLMOps?
+
+LLMOps = everything needed to run LLMs safely, reliably, and economically in real products.
+
+It focuses on operating Large Language Models in production while ensuring predictable behavior, trust, and sustainability at scale.
+
+⸻
+
+How LLMOps Differs from MLOps
+
+MLOps	LLMOps
+Data → Train → Predict	Prompt → Reason → Generate
+Static models	Rapidly evolving models
+Numeric outputs	Natural language + reasoning
+Accuracy-focused	Trust, confidence, behavior-focused
+
+
+⸻
+
+All Things “Ops” – One-Liner View
+	•	AIOps keeps systems running.
+	•	LLMOps keeps AI behaving.
+	•	AgentOps keeps autonomy safe.
+
+⸻
+
+AIOps
+
+AI for operating IT systems
+
+Key characteristics
+	•	Uses ML/AI to monitor, detect anomalies, and correlate events
+	•	Automates incident response and root cause analysis
+	•	Focused on infrastructure, logs, metrics, and alerts
+
+Primary question
+Is the system healthy?
+
+⸻
+
+LLMOps
+
+Operating Large Language Models in production
+
+Key characteristics
+	•	Prompt lifecycle management
+	•	Model routing, evaluation, and governance
+	•	Cost, latency, quality, and hallucination control
+	•	Trust, explainability, and human confidence
+
+Primary question
+Is the AI behaving as intended?
+
+⸻
+
+AgentOps
+
+Operating autonomous or semi-autonomous AI agents
+
+Key characteristics
+	•	Multi-step decision-making
+	•	Tool use, permissions, and boundaries
+	•	Failure recovery and safe autonomy
+	•	Accountability and audit trails
+
+Primary question
+Can this AI act safely on our behalf?
+
+⸻
+
+MLOps (Context)
+
+Classic ML operations
+
+Key characteristics
+	•	Data → train → deploy → monitor
+	•	Works well for predictive models
+	•	Breaks down with LLMs because behavior ≠ accuracy
+
+Key distinction
+LLMOps borrows tooling ideas from MLOps,
+but replaces accuracy with trust.
+
+⸻
+
+How These Ops Stack Together (Important)
+
+Think of these as layers, not competing concepts:
+	•	AIOps → Keeps infrastructure alive
+	•	MLOps → Keeps predictive models accurate
+	•	LLMOps → Keeps language models trustworthy
+	•	AgentOps → Keeps autonomy safe
+
+In modern systems
+	•	LLMOps sits between MLOps and AgentOps
+	•	AIOps underpins everything
+
+⸻
+
+The Core Problem We Are Solving
+
+We don’t have an AI problem.
+We have a behavior management problem.
+	•	AIOps manages system behavior
+	•	LLMOps manages AI behavior
+	•	AgentOps manages autonomous behavior
+
+⸻
+
+Perfect use case for Confluence 👍
+Below is a checkbox-driven LLMOps maturity assessment page you can actually use with teams to determine current maturity level.
+Language is deliberately operational, not aspirational.
+
+You can paste this directly into Confluence and use [ ] as checkboxes.
+
+⸻
+
+LLMOps Maturity Assessment
+
+Purpose
+This page helps teams assess the current LLMOps maturity level by checking which capabilities are in place.
+The highest level where most items are checked indicates the current maturity stage.
+
+⸻
+
+Level 1 — Initial
+
+“We are exploring LLM capabilities.”
+
+Check if true
+	•	LLMs are accessed directly via APIs or notebooks
+	•	Prompts are written inline in code or scripts
+	•	Testing is manual and subjective
+	•	No prompt or model versioning exists
+	•	No tracking of cost, latency, or failures
+	•	Hallucinations are handled manually or ignored
+
+Core question
+Can it work?
+
+Metric Category,Metric to Measure,AWS Data Source
+Connectivity,API Gateway 2xx/4xx/5xx count,CloudWatch (API Gateway)
+Basic Output,Successful vs. Failed generation count,Bedrock InvocationMetrics
+Sanity Check,Response presence (Is the string empty?),Lambda Logs (CloudWatch)
+
+Metric Category,Relevant CloudWatch Metric / Log,Purpose
+Availability,Invocations (Bedrock),Count of successful model calls.
+API Health,Count & 5XXError (API Gateway),Ensures the front door is open.
+Execution,Invocations & Errors (Lambda),Monitors if the RAG logic code is running.
+Basic Quality,InvocationClientErrors (Bedrock),"Identifies if your scripts are sending ""Bad Requests."""
+
+⸻
+
+Level 2 — Managed
+
+“We can run this without panic.”
+
+Check if true
+	•	Prompt templates are centralized and reusable
+	•	Inputs and outputs are logged
+	•	Token usage and latency are tracked
+	•	Dev / test / prod environments exist
+	•	Basic retry, timeout, and error handling is implemented
+	•	Simple RAG pipelines are in place
+
+Core question
+Can we run this reliably?
+
+Metric Category,Metric to Measure,AWS Data Source
+Resource Efficiency,Lambda Duration & Memory usage,CloudWatch (Lambda)
+Token Tracking,Input/Output tokens per request,Bedrock InvocationMetrics
+Latency,P50/P90/P99 Response Time,API Gateway / Bedrock Latency
+RAG Retrieval,Context Relevance: How relevant are the S3 docs retrieved?,Bedrock Knowledge Base Eval
+RAG Generation,Faithfulness: Does the answer come from the retrieved context?,Bedrock Knowledge Base Eval
+
+Metric Category,Relevant CloudWatch Metric / Log,Purpose
+Cost Tracking,InputTokenCount & OutputTokenCount,Direct proxy for Bedrock billing.
+Performance,InvocationLatency (Bedrock),Measures how long the model takes to generate.
+Bottlenecks,InvocationThrottles (Bedrock),Alerts if you are hitting service quotas.
+Logging,CloudWatch Logs: /aws/bedrock/modelinvocations,Centralized store of prompt/response history.
+
+⸻
+
+Level 3 — Governed
+
+“We trust this in production.”
+
+Check if true
+	•	Prompts and models are version-controlled
+	•	Automated evaluations exist for quality or hallucinations
+	•	Changes go through approval or review workflows
+	•	Clear data handling and PII rules are defined
+	•	Model routing is used (cheap vs strong models)
+	•	End-to-end observability exists across chains or agents
+
+Core question
+Can we rely on this?
+
+Metric Category,Metric to Measure,AWS Data Source
+Hallucination,Hallucination Rate (via LLM-as-a-judge),Bedrock Model Evaluation
+Data Privacy,PII Detection frequency (Redaction counts),Bedrock Guardrails Logs
+Security,Prompt Injection attempts blocked,Bedrock Guardrails
+Governance,Audit trail coverage (% of requests logged),CloudWatch Logs / S3
+
+Metric Category,Relevant CloudWatch Metric / Log,Purpose
+Security,InvocationsIntervened (Guardrails),Tracks how many prompts were blocked for safety/PII.
+RAG Retrieval,Builtin.ContextRelevance,Retriever Score: How well the S3 docs match the query.
+RAG Accuracy,Builtin.Faithfulness,Generator Score: Checks for hallucinations against docs.
+Latency Detail,X-Ray Trace Spans (via Lambda),Breaks down time spent in: Query -> Retrieval -> Bedrock.
+
+⸻
+
+Level 4 — Optimized
+
+“It delivers value efficiently.”
+
+Check if true
+	•	Continuous evaluation and feedback loops are active
+	•	Caching, batching, or cost-aware routing is implemented
+	•	Prompts or workflows adapt based on usage patterns
+	•	Confidence scores are generated for outputs
+	•	Human-in-the-loop is applied selectively, not everywhere
+	•	Cost per interaction is monitored and optimized
+
+Core question
+Is it worth it?
+
+Metric Category,Metric to Measure,AWS Data Source
+Cost Control,"Cost per 1,000 requests / Cost per User",AWS Cost Explorer (Tags)
+User Experience,TTFT (Time to First Token) in streaming,Bedrock Stream Metrics
+Cache Efficiency,Cache Hit Ratio (if using Bedrock prompt caching),Bedrock Caching Metrics
+Quality,Confidence Scores for model outputs,Lambda logic / Metadata
+
+Metric Category,Relevant CloudWatch Metric / Log,Purpose
+Efficiency,InvocationLatency P99 vs. P50,Optimizing for the worst-case user experience.
+Cache Performance,Custom Metric: PromptCacheHitRatio,"If using Bedrock caching, measure cost savings."
+Model Routing,CloudWatch Contributor Insights,Analyze which models (Haiku vs. Sonnet) are used most.
+UX Feedback,"Log Insights: filter @message like ""UserFeedback""","Aggregating ""Thumbs Up/Down"" from app logs."
+
+⸻
+
+Level 5 — Agentic & Responsible
+
+“AI behaves like a reliable teammate.”
+
+Check if true
+	•	Multi-agent systems have clear role boundaries
+	•	Agents are policy-aware and can refuse unsafe actions
+	•	Tool permissions and autonomy boundaries are enforced
+	•	Self-healing workflows and fallbacks exist
+	•	Continuous learning from usage signals is in place
+	•	Clear accountability and audit trails exist for actions taken
+
+Core question
+Does this AI help people do better work safely?
+
+Metric Category,Metric to Measure,AWS Data Source
+Tool Usage,Tool Calling Success Rate (did Lambda execute?),Bedrock Agent Action Group
+Self-Correction,Re-try success rate after initial failure,Step Functions / Lambda
+Policy Compliance,% of unsafe refusals correctly triggered,Bedrock Guardrails
+Autonomy,Human-in-the-loop (HITL) intervention frequency,SageMaker Ground Truth
+
+Metric Category,Relevant CloudWatch Metric / Log,Purpose
+Tool Accuracy,ActionGroupInvocationSuccess (Agents),Tracks if the agent invoked the correct Lambda tool.
+Self-Correction,CloudWatch Metric Math: Errors / Invocations,"Automated alerts for ""Reasoning Loop"" failures."
+Safety Compliance,AutomatedReasoningChecks,Tracks if agent actions stayed within defined policies.
+Audit Trails,AWS CloudTrail: InvokeAgent,Immutable record of which agent took what action.
+
+⸻
+
+Determining Current Maturity Level
+	•	Identify the highest level where most items are checked
+	•	Gaps in higher levels indicate next improvement areas
+	•	Maturity is not about reaching Level 5 — it’s about intentional progress
+
+⸻
+
+https://docs.datadoghq.com/llm_observability/instrumentation/sdk/?tab=python
+https://aws.amazon.com/blogs/machine-learning/monitor-agents-built-on-amazon-bedrock-with-datadog-llm-observability/
+https://docs.aws.amazon.com/bedrock/latest/userguide/monitoring.html
+
